@@ -1,0 +1,1975 @@
+Sjasm Z80 Assembler v0.42b8 - www.xl2s.tk             [2019.02.24 - 16:45:23]
+
+src\main48.asm
+Errors: 0
+
+       1   00:0000                      ; -----------------------------
+       2   00:0000                      ; 8 directions smooth scroller engine
+       3   00:0000                      ; ------------------------------
+       4   00:0000                      
+       5   00:0000                      ; ------------
+       6   00:0000                      ; macros
+       7   00:0000                      ;
+       8   00:0000                          macro _setVdp register,value       ; without DI/EI
+       9   00:0000                    <     ld  a,value
+      10   00:0000                    <     out (0x99),a
+      11   00:0000                    <     ld  a,register + 0x80
+      12   00:0000                    <     out (0x99),a
+      13   00:0000                    <     endmacro
+      14   00:0000                      
+      15   00:0000                          macro setVdp register,value       ; macro definition
+      16   00:0000                    <     di
+      17   00:0000                    <     _setVdp register,value
+      18   00:0000                    <     ei
+      19   00:0000                    <     endmacro
+      20   00:0000                      
+      21   00:0000                          macro _setvdpwvram value
+      22   00:0000                    <     if (value & 0xFF)
+      23   00:0000                    <         ld  a,value & 0xFF
+      24   00:0000                    <     else
+      25   00:0000                    <         xor a
+      26   00:0000                    <     endif
+      27   00:0000                    <     out (0x99),a
+      28   00:0000                    <     ld  a,0x40 + (value/256)
+      29   00:0000                    <     out (0x99),a
+      30   00:0000                    <     endmacro
+      31   00:0000                      
+      32   00:0000                          macro setvdpwvram value
+      33   00:0000                    <     di
+      34   00:0000                    <     _setvdpwvram value
+      35   00:0000                    <     ei
+      36   00:0000                    <     endmacro
+      37   00:0000                      
+      38   00:0000                      
+      39   00:0000                          output Scrll8way.rom
+      40   00:0000                      
+      41   00:0000                          incdir data_bin/
+      42   00:0000                      	incdir data_miz/
+      43   00:0000                      	incdir src/
+      44   00:0000                      
+      45   00:0000                          defpage 0,0x0000,0x4000
+      46   00:0000                          defpage 1,0x4000,0x8000
+      47   00:0000                      	
+      48   00:0000  (00)                	page 0
+      49   00:0000                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      50   00:0000                      ; Interrupt service routine
+      51   00:0000                      ;
+      52   00:0000                      	code @ 0x0038
+      53   00:0038                      	
+      54   00:0038  E5                  	push   hl         
+      55   00:0039  D5                  	push   de         
+      56   00:003A  C5                  	push   bc         
+      57   00:003B  F5                  	push   af         
+      58   00:003C  D9                  	exx               
+      59   00:003D  08                  	ex     af,af'     
+      60   00:003E  E5                  	push   hl         
+      61   00:003F  D5                  	push   de         
+      62   00:0040  C5                  	push   bc         
+      63   00:0041  F5                  	push   af        
+      64   00:0042  FD E5               	push   iy  
+      65   00:0044  DD E5               	push   ix
+      66   00:0046                      
+      67   00:0046                          _setVdp 5,0x37  ;   SAT at 0x1b80
+      67   00:0046  3E 37             >     ld  a,value
+      67   00:0048  D3 99             >     out (0x99),a
+      67   00:004A  3E 85             >     ld  a,register + 0x80
+      67   00:004C  D3 99             >     out (0x99),a
+      68   00:004E                          _setVdp 6,0x03  ;   SPT at 0x1800   (used from 0x1C00 to 0x1FF  only 32 sprites 16x16)
+      68   00:004E  3E 03             >     ld  a,value
+      68   00:0050  D3 99             >     out (0x99),a
+      68   00:0052  3E 86             >     ld  a,register + 0x80
+      68   00:0054  D3 99             >     out (0x99),a
+      69   00:0056                          ; _setVdp 7,0x0E
+      70   00:0056                      
+      71   00:0056  CD 0E 03                call _sat_update
+      72   00:0059                      
+      73   00:0059  3A 0C D8                ld  a,(xmap)	; lower bits
+      74   00:005C  47                  	ld  b,a
+      75   00:005D  3A 0F D8                ld  a,(ymap)	; lower bits
+      76   00:0060  A8                  	xor b
+      77   00:0061  E6 02                   and 2
+      78   00:0063  CA 6C 00                jp  z,page0
+      79   00:0066                      page1:
+      80   00:0066                      
+      81   00:0066  CD EC 02                call    disp_page1
+      82   00:0069  C3 6F 00                jp  1f
+      83   00:006C                      
+      84   00:006C                      page0:
+      85   00:006C  CD FD 02                call    disp_page0
+      86   00:006F                      
+      87   00:006F                      1:   _setvdpwvram 0x1900
+      87   00:006F                    >     if (value & 0xFF)
+      87   00:006F                    ~         ld  a,value & 0xFF
+      87   00:006F                    ~     else
+      87   00:006F  AF                >         xor a
+      87   00:0070                    >     endif
+      87   00:0070  D3 99             >     out (0x99),a
+      87   00:0072  3E 59             >     ld  a,0x40 + (value/256)
+      87   00:0074  D3 99             >     out (0x99),a
+      88   00:0076  CD 53 01                call    _plot_pnt
+      89   00:0079                      	
+      90   00:0079                      
+      91   00:0079  DB 99               1:  in  a,(0x99)
+      92   00:007B  E6 5F                   and 0x5f
+      93   00:007D  FE 5C                   cp  0x5C        ; plane 28 =0x1C
+      94   00:007F  C2 79 00                jp  nz,1b
+      95   00:0082                      
+      96   00:0082                          _setVdp 5,0x36  ;   SAT at 0x1b00
+      96   00:0082  3E 36             >     ld  a,value
+      96   00:0084  D3 99             >     out (0x99),a
+      96   00:0086  3E 85             >     ld  a,register + 0x80
+      96   00:0088  D3 99             >     out (0x99),a
+      97   00:008A                          _setVdp 6,0x07  ;   SPT at 0x3800   (64 sprites 16x16)
+      97   00:008A  3E 07             >     ld  a,value
+      97   00:008C  D3 99             >     out (0x99),a
+      97   00:008E  3E 86             >     ld  a,register + 0x80
+      97   00:0090  D3 99             >     out (0x99),a
+      98   00:0092                      	
+      99   00:0092                          ; _setVdp 7,0x00
+     100   00:0092                      
+     101   00:0092  DD E1                   pop    ix
+     102   00:0094  FD E1                   pop    iy
+     103   00:0096  F1                      pop    af
+     104   00:0097  C1                      pop    bc
+     105   00:0098  D1                      pop    de
+     106   00:0099  E1                      pop    hl
+     107   00:009A  08                      ex     af,af'
+     108   00:009B  D9                      exx
+     109   00:009C  F1                      pop    af
+     110   00:009D  C1                      pop    bc
+     111   00:009E  D1                      pop    de
+     112   00:009F  E1                      pop    hl
+     113   00:00A0  FB                      ei
+     114   00:00A1  C9                      ret
+     115   00:00A2                      
+     116   00:00A2                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     117   00:00A2                      ; -------------------------------------------------------
+     118   00:00A2                      ; MSX-O-Mizer v1.5f datas depacker    *ROM based version*
+     119   00:00A2                      ; Improved from Metalbrain's z80 version.
+     120   00:00A2                      ; -------------------------------------------------------
+     121   00:00A2                      ; source in hl
+     122   00:00A2                      ; dest in de
+     123   00:00A2                      
+     124   00:00A2                      ; 328 bytes which must be aligned on 8 bits boundary
+     125   00:00A2  (00:E000)           mom_map_bits_rom    =       0xe000
+     126   00:00A2                      ; 26 bytes located in ram
+     127   00:00A2  (00:E148)           mom_offset_table    =       0xe000 + 328	
+     128   00:00A2                      
+     129   00:00A2                      
+     130   00:00A2  D5                  mom_depack_rom:     push    de
+     131   00:00A3  01 48 E1                                ld      bc, mom_offset_table
+     132   00:00A6  C5                                      push    bc
+     133   00:00A7  50                                      ld      d,b
+     134   00:00A8  59                  					ld		e,c
+     135   00:00A9  01 1A 00                                ld      bc, 26
+     136   00:00AC  ED B0                                   ldir
+     137   00:00AE  E5                                      push    hl
+     138   00:00AF  F1                                      pop     af
+     139   00:00B0  E1                                      pop     hl
+     140   00:00B1  F5                                      push    af
+     141   00:00B2  FD 21 F0 E0                             ld      iy, mom_map_bits_rom + 0xf0
+     142   00:00B6  06 34                                   ld      b, 52
+     143   00:00B8  FD 7D               mom_init_bits_rom:  ld      a, iyl
+     144   00:00BA  E6 0F                                   and     15
+     145   00:00BC  20 03                                   jr      nz, mom_node_rom
+     146   00:00BE  11 01 00                                ld      de, 1
+     147   00:00C1  ED 67               mom_node_rom:       rrd
+     148   00:00C3  FD 77 00                                ld      (iy), a
+     149   00:00C6  FD 73 24                                ld      (iy + 36), e
+     150   00:00C9  FD 72 48                                ld      (iy + 72), d
+     151   00:00CC  FD 2C                                   inc     iyl
+     152   00:00CE  3C                                      inc     a
+     153   00:00CF  E5                                      push    hl
+     154   00:00D0  21 00 00                                ld      hl, 0
+     155   00:00D3  37                                      scf
+     156   00:00D4  ED 6A               mom_set_bit_rom:    adc     hl, hl
+     157   00:00D6  3D                                      dec     a
+     158   00:00D7  20 FB                                   jr      nz, mom_set_bit_rom
+     159   00:00D9  19                                      add     hl, de
+     160   00:00DA  EB                                      ex      de, hl
+     161   00:00DB  E1                                      pop     hl
+     162   00:00DC  CB 40                                   bit     0, b
+     163   00:00DE  28 01                                   jr      z, mom_wait_step_rom
+     164   00:00E0  23                                      inc     hl
+     165   00:00E1  10 D5               mom_wait_step_rom:  djnz    mom_init_bits_rom
+     166   00:00E3  E1                                      pop     hl
+     167   00:00E4  7E                                      ld      a, (hl)
+     168   00:00E5  23                                      inc     hl
+     169   00:00E6  DD 67                                   ld      ixh, a
+     170   00:00E8  D1                                      pop     de
+     171   00:00E9  ED A0               mom_lit_copy_rom:   ldi
+     172   00:00EB  CD 48 01            mom_main_loop_rom:  call    mom_get_bit_rom
+     173   00:00EE  38 F9                                   jr      c, mom_lit_copy_rom
+     174   00:00F0  0E EF                                   ld      c, -17
+     175   00:00F2  CD 48 01            mom_get_index_rom:  call    mom_get_bit_rom
+     176   00:00F5  0C                                      inc     c
+     177   00:00F6  30 FA                                   jr      nc, mom_get_index_rom
+     178   00:00F8  79                                      ld      a, c
+     179   00:00F9  C8                                      ret     z
+     180   00:00FA  D5                                      push    de
+     181   00:00FB  CD 27 01                                call    mom_get_pair_rom
+     182   00:00FE  C5                                      push    bc
+     183   00:00FF  20 0C                                   jr      nz, mom_out_range_rom
+     184   00:0101  11 20 02                                ld      de, 0x0220
+     185   00:0104  0D                                      dec     c
+     186   00:0105  28 09                                   jr      z, mom_go_for_it_rom
+     187   00:0107  11 10 04                                ld      de, 0x0410
+     188   00:010A  0D                                      dec     c
+     189   00:010B  28 03                                   jr      z, mom_go_for_it_rom
+     190   00:010D  11 00 04            mom_out_range_rom:  ld      de, 0x0400
+     191   00:0110  F1                  mom_go_for_it_rom:  pop     af
+     192   00:0111  08                                      ex      af, af'
+     193   00:0112  CD 39 01                                call    mom_get_bits_rom
+     194   00:0115  83                                      add     a, e
+     195   00:0116  CD 27 01                                call    mom_get_pair_rom
+     196   00:0119  D1                                      pop     de
+     197   00:011A  E5                                      push    hl
+     198   00:011B  62                                      ld      h, d
+     199   00:011C  6B                                      ld      l, e
+     200   00:011D  ED 42                                   sbc     hl, bc
+     201   00:011F  08                                      ex      af, af'
+     202   00:0120  F5                                      push    af
+     203   00:0121  C1                                      pop     bc
+     204   00:0122  ED B0                                   ldir
+     205   00:0124  E1                                      pop     hl
+     206   00:0125  18 C4                                   jr      mom_main_loop_rom
+     207   00:0127  FD 6F               mom_get_pair_rom:   ld      iyl, a
+     208   00:0129  FD 56 00                                ld      d, (iy)
+     209   00:012C  CD 39 01                                call    mom_get_bits_rom
+     210   00:012F  FD 86 24                                add     (iy + 36)
+     211   00:0132  4F                                      ld      c, a
+     212   00:0133  78                                      ld      a, b
+     213   00:0134  FD 8E 48                                adc     (iy + 72)
+     214   00:0137  47                                      ld      b, a
+     215   00:0138  C9                                      ret
+     216   00:0139  01 00 00            mom_get_bits_rom:   ld      bc, 0
+     217   00:013C                      mom_getting_bits_rom:
+     218   00:013C  15                                      dec     d
+     219   00:013D  79                                      ld      a, c
+     220   00:013E  F8                                      ret     m
+     221   00:013F  CD 48 01                                call    mom_get_bit_rom
+     222   00:0142  CB 11                                   rl      c
+     223   00:0144  CB 10                                   rl      b
+     224   00:0146  18 F4                                   jr      mom_getting_bits_rom
+     225   00:0148  DD 7C               mom_get_bit_rom:    ld      a, ixh
+     226   00:014A  87                                      add     a
+     227   00:014B  20 03                                   jr      nz, mom_byte_done_rom
+     228   00:014D  7E                                      ld      a, (hl)
+     229   00:014E  23                                      inc     hl
+     230   00:014F  17                                      rla
+     231   00:0150  DD 67               mom_byte_done_rom:  ld      ixh, a
+     232   00:0152  C9                                      ret
+     233   00:0153                      
+     234   00:0153                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     235   00:0153                      ; PLOT PNT
+     236   00:0153                      ; input : xmap,ymap
+     237   00:0153                      ;
+     238   00:0153                      _plot_pnt:
+     239   00:0153  2A 0C D8                ld  hl,(xmap)   ; x position in pixels
+     240   00:0156  7D                      ld  a,l
+     241   00:0157  0F                      rrca
+     242   00:0158  E6 03                   and %00000011
+     243   00:015A  47                  	ld	b,a
+     244   00:015B  2A 0F D8                ld  hl,(ymap)   ; y position in pixels
+     245   00:015E  7D                      ld  a,l
+     246   00:015F  E6 06                   and %00000110
+     247   00:0161  87                  	add a,a
+     248   00:0162  80                  	add a,b	
+     249   00:0163  C6 50                   add a,meta_pnt_table/256
+     250   00:0165  DD 6F                   ld  ixl,a		; 			row in meta vec
+     251   00:0167                      
+     252   00:0167                      	; hl = x/8+y/8*64 = x/8 + (y & %1111 1111 1111 1000)*8
+     253   00:0167                      
+     254   00:0167  2A 0C D8                ld  hl,(xmap)   ; x position in pixels
+     255   00:016A  CB 3C               	srl h
+     256   00:016C  CB 1D                   rr  l
+     257   00:016E  CB 3C                   srl h
+     258   00:0170  CB 1D                   rr  l
+     259   00:0172  CB 3C                   srl h
+     260   00:0174  CB 1D                   rr  l
+     261   00:0176  E5                  	push hl
+     262   00:0177  2A 0F D8                ld  hl,(ymap)   ; y position in pixels
+     263   00:017A  7D                  	ld  a,l
+     264   00:017B  E6 F8               	and %11111000
+     265   00:017D  6F                  	ld  l,a
+     266   00:017E  29                  	add hl,hl
+     267   00:017F  29                  	add hl,hl
+     268   00:0180  29                  	add hl,hl
+     269   00:0181  D1                  	pop de
+     270   00:0182  19                  	add hl,de
+     271   00:0183  11 00 C0                ld  de,level_buffer
+     272   00:0186  19                      add hl,de
+     273   00:0187                      
+     274   00:0187  EB                      ex  de,hl
+     275   00:0188                      
+     276   00:0188  0E 98                   ld  c,0x98
+     277   00:018A  DD 26 10                ld  ixh,16
+     278   00:018D                      1:
+     279   00:018D  DD 7D                   ld  a,ixl
+     280   00:018F  67                      ld  h,a
+     281   00:0190  7B                      ld  a,e
+     282   00:0191  C6 20                   add a,32
+     283   00:0193  D2 41 02                jp  nc,.fast_loop
+     284   00:0196                      
+     285   00:0196                      .slow_loop:
+     286   00:0196                          repeat 32
+     287   00:0196                    <     ld  a,(de)
+     288   00:0196                    <     ld  l,a
+     289   00:0196                    <     outi
+     290   00:0196                    <     inc de
+     291   00:0196                    <     endrepeat
+     291   00:0196  1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 
+     291   00:01A6  6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F 
+     291   00:01B6  ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED 
+     291   00:01C6  A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 
+     291   00:01D6  13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 
+     291   00:01E6  1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 
+     291   00:01F6  6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F 
+     291   00:0206  ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED 
+     291   00:0216  A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 
+     291   00:0226  13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 
+     292   00:0236                      
+     293   00:0236  21 20 00                ld  hl,LvlWidth-32
+     294   00:0239  19                      add hl,de
+     295   00:023A  EB                      ex  de,hl
+     296   00:023B                      
+     297   00:023B  DD 25                   dec ixh
+     298   00:023D  C2 8D 01                jp  nz,1b
+     299   00:0240                      
+     300   00:0240  C9                      ret
+     301   00:0241                      
+     302   00:0241                      .fast_loop:
+     303   00:0241                          repeat 32
+     304   00:0241                    <     ld  a,(de)
+     305   00:0241                    <     ld  l,a
+     306   00:0241                    <     outi
+     307   00:0241                    <     inc e
+     308   00:0241                    <     endrepeat
+     308   00:0241  1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 
+     308   00:0251  6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F 
+     308   00:0261  ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED 
+     308   00:0271  A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 
+     308   00:0281  1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 
+     308   00:0291  1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 
+     308   00:02A1  6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F 
+     308   00:02B1  ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED 
+     308   00:02C1  A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 
+     308   00:02D1  1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 
+     309   00:02E1                      
+     310   00:02E1  21 20 00                ld  hl,LvlWidth-32
+     311   00:02E4  19                      add hl,de
+     312   00:02E5  EB                      ex  de,hl
+     313   00:02E6                      
+     314   00:02E6  DD 25                   dec ixh
+     315   00:02E8  C2 8D 01                jp  nz,1b
+     316   00:02EB                      
+     317   00:02EB  C9                      ret
+     318   00:02EC                      
+     319   00:02EC                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     320   00:02EC                      ;          defb 0x02 ; Reg# 0 000000[M3][EV]
+     321   00:02EC                      ;          defb 0x62 ; Reg# 1 [4/16k][BLANK][IE][M1][M2]0[SIZE][MAG]
+     322   00:02EC                      ;          defb 0x06 ; Reg# 2 0000[NAME TABLE BASE ADDRESS]          = 1800h
+     323   00:02EC                      
+     324   00:02EC                      ;          defb 0x9F ; Reg# 3 [COLOR BASE ADDRESS]                   = 2000h ; hybrid mode for colors
+     325   00:02EC                      ;          defb 0xFF ; Reg# 3 [COLOR BASE ADDRESS]                   = 2000h ; regular mode for colors
+     326   00:02EC                      
+     327   00:02EC                      ;          defb 0x1F ; Reg# 3 [COLOR BASE ADDRESS]                   = 0000h ; hybrid mode for colors
+     328   00:02EC                      ;          defb 0x7F ; Reg# 3 [COLOR BASE ADDRESS]                   = 0000h ; regular mode for colors
+     329   00:02EC                      
+     330   00:02EC                      ;          defb 0x00 ; Reg# 4 00000[PATTERN GENERATOR BASE ADDRESS]  = 0000h ; hybrid mode for patterns
+     331   00:02EC                      ;          defb 0x03 ; Reg# 4 00000[PATTERN GENERATOR BASE ADDRESS]  = 0000h ; regular mode for patterns
+     332   00:02EC                      
+     333   00:02EC                      ;          defb 0x04 ; Reg# 4 00000[PATTERN GENERATOR BASE ADDRESS]  = 2000h ; hybrid mode for patterns
+     334   00:02EC                      ;          defb 0x07 ; Reg# 4 00000[PATTERN GENERATOR BASE ADDRESS]  = 2000h ; regular mode for patterns
+     335   00:02EC                      
+     336   00:02EC                      ;          defb 0x36 ; Reg# 5 0[SPRITE ATTRIBUTE TABLE BASE ADDRESS] = 1b00h
+     337   00:02EC                      ;          defb 0x07 ; Reg# 6 00000[SPRITE PTRN GNRTR BASE ADDRESS]  = 3800h
+     338   00:02EC                      ;          defb 0x01 ; Reg# 7 [TEXT COLOR 4bts][BACKDROP COLOR 4bts]
+     339   00:02EC                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     340   00:02EC                      
+     341   00:02EC                      disp_page1:         ; page 1 active
+     342   00:02EC                          _setVdp 3,0x9F  ;   colours at 0x2000   (hybrid)
+     342   00:02EC  3E 9F             >     ld  a,value
+     342   00:02EE  D3 99             >     out (0x99),a
+     342   00:02F0  3E 83             >     ld  a,register + 0x80
+     342   00:02F2  D3 99             >     out (0x99),a
+     343   00:02F4                          _setVdp 4,0x03  ;   patterns at 0x0000  (regular: used 0x0800 0x1000)
+     343   00:02F4  3E 03             >     ld  a,value
+     343   00:02F6  D3 99             >     out (0x99),a
+     343   00:02F8  3E 84             >     ld  a,register + 0x80
+     343   00:02FA  D3 99             >     out (0x99),a
+     344   00:02FC  C9                      ret
+     345   00:02FD                      
+     346   00:02FD                      disp_page0:         ; page 0 active
+     347   00:02FD                          _setVdp 3,0x1F  ;   colours at 0x0000   (hybrid)
+     347   00:02FD  3E 1F             >     ld  a,value
+     347   00:02FF  D3 99             >     out (0x99),a
+     347   00:0301  3E 83             >     ld  a,register + 0x80
+     347   00:0303  D3 99             >     out (0x99),a
+     348   00:0305                          _setVdp 4,0x07  ;   patterns at 0x2000  (regular: used 0x2800 0x3000)
+     348   00:0305  3E 07             >     ld  a,value
+     348   00:0307  D3 99             >     out (0x99),a
+     348   00:0309  3E 84             >     ld  a,register + 0x80
+     348   00:030B  D3 99             >     out (0x99),a
+     349   00:030D  C9                      ret
+     350   00:030E                      
+     351   00:030E                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     352   00:030E                      ;
+     353   00:030E                      ;   sprite multiplexing
+     354   00:030E                      ;
+     355   00:030E                      _sat_update:
+     356   00:030E  3A 17 D8                ld  a,(reverse_sat)
+     357   00:0311  EE 01                   xor 1
+     358   00:0313  32 17 D8                ld  (reverse_sat),a
+     359   00:0316  C2 3C 03                jp  nz,_reverse_sat
+     360   00:0319                      
+     361   00:0319                      _directsat:
+     362   00:0319  3A 16 D8                ld  a,(visible_sprts)
+     363   00:031C  E6 FC                   and 0xFC
+     364   00:031E  C8                      ret z
+     365   00:031F  47                      ld  b,a
+     366   00:0320  0E 98                   ld  c,0x98
+     367   00:0322  21 18 D8                ld  hl,ram_sat
+     368   00:0325                          _setvdpwvram 0x1b00
+     368   00:0325                    >     if (value & 0xFF)
+     368   00:0325                    ~         ld  a,value & 0xFF
+     368   00:0325                    ~     else
+     368   00:0325  AF                >         xor a
+     368   00:0326                    >     endif
+     368   00:0326  D3 99             >     out (0x99),a
+     368   00:0328  3E 5B             >     ld  a,0x40 + (value/256)
+     368   00:032A  D3 99             >     out (0x99),a
+     369   00:032C  ED A3               1:  outi
+     370   00:032E  ED A3                   outi
+     371   00:0330  ED A3                   outi
+     372   00:0332  ED A3                   outi
+     373   00:0334  C2 2C 03                jp  nz,1b
+     374   00:0337  3E D0                   ld  a,0xD0
+     375   00:0339  D3 98                   out (0x98),a
+     376   00:033B  C9                      ret
+     377   00:033C                      
+     378   00:033C                      _reverse_sat
+     379   00:033C  3A 16 D8                ld  a,(visible_sprts)
+     380   00:033F  E6 FC                   and 0xFC
+     381   00:0341  C8                      ret z
+     382   00:0342  47                      ld  b,a
+     383   00:0343  0E 98                   ld  c,0x98
+     384   00:0345  21 1C D8                ld  hl,ram_sat-4+8
+     385   00:0348                      
+     386   00:0348  58                      ld  e,b
+     387   00:0349  16 00                   ld  d,0
+     388   00:034B  19                      add hl,de
+     389   00:034C  11 F8 FF                ld  de,-8
+     390   00:034F                      
+     391   00:034F                          _setvdpwvram 0x1b00
+     391   00:034F                    >     if (value & 0xFF)
+     391   00:034F                    ~         ld  a,value & 0xFF
+     391   00:034F                    ~     else
+     391   00:034F  AF                >         xor a
+     391   00:0350                    >     endif
+     391   00:0350  D3 99             >     out (0x99),a
+     391   00:0352  3E 5B             >     ld  a,0x40 + (value/256)
+     391   00:0354  D3 99             >     out (0x99),a
+     392   00:0356  19                  1:  add hl,de
+     393   00:0357  ED A3                   outi
+     394   00:0359  ED A3                   outi
+     395   00:035B  ED A3                   outi
+     396   00:035D  ED A3                   outi
+     397   00:035F  C2 56 03                jp  nz,1b
+     398   00:0362  3E D0                   ld  a,0xD0
+     399   00:0364  D3 98                   out (0x98),a
+     400   00:0366  C9                      ret
+     401   00:0367                      
+     402   00:0367                      	
+     403   00:0367                      	
+     404   00:0367                      
+     405   00:0367                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     406   00:0367                      ; IN HL:DE INPUT
+     407   00:0367                      ; BC POINTS TO OUTPUT
+     408   00:0367                      
+     409   00:0367                      long2ascii:
+     410   00:0367                      					; HL = HIGH WORD
+     411   00:0367  D5                  	PUSH    DE
+     412   00:0368  D9                  	EXX
+     413   00:0369  E1                  	POP     HL      ; HL' = LOW WORD
+     414   00:036A  D9                  	EXX
+     415   00:036B                      
+     416   00:036B  59                  	LD  E,C
+     417   00:036C  50                  	LD  D,B
+     418   00:036D                      
+     419   00:036D  01 65 C4            	LD  BC,-1000000000/0x10000 -1
+     420   00:0370  D9                  	EXX
+     421   00:0371  01 00 36            	LD  BC,-1000000000&0xFFFF
+     422   00:0374  D9                  	EXX
+     423   00:0375  CD D8 03            	CALL    NUM1
+     424   00:0378                      
+     425   00:0378  01 0A FA            	LD  BC,-100000000/0x10000 -1
+     426   00:037B  D9                  	EXX
+     427   00:037C  01 00 1F            	LD  BC,-100000000&0xFFFF
+     428   00:037F  D9                  	EXX
+     429   00:0380  CD D8 03            	CALL    NUM1
+     430   00:0383                      
+     431   00:0383  01 67 FF            	LD  BC,-10000000/0x10000 -1
+     432   00:0386  D9                  	EXX
+     433   00:0387  01 80 69            	LD  BC,-10000000&0xFFFF
+     434   00:038A  D9                  	EXX
+     435   00:038B  CD D8 03            	CALL    NUM1
+     436   00:038E                      
+     437   00:038E  01 F0 FF            	LD  BC,-1000000/0x10000 -1
+     438   00:0391  D9                  	EXX
+     439   00:0392  01 C0 BD            	LD  BC,-1000000&0xFFFF
+     440   00:0395  D9                  	EXX
+     441   00:0396  CD D8 03            	CALL    NUM1
+     442   00:0399                      
+     443   00:0399  01 FE FF            	LD  BC,-100000/0x10000 -1
+     444   00:039C  D9                  	EXX
+     445   00:039D  01 60 79            	LD  BC,-100000&0xFFFF
+     446   00:03A0  D9                  	EXX
+     447   00:03A1  CD D8 03            	CALL    NUM1
+     448   00:03A4                      
+     449   00:03A4  01 FF FF            	LD  BC,-10000/0x10000 -1
+     450   00:03A7  D9                  	EXX
+     451   00:03A8  01 F0 D8            	LD  BC,-10000&0xFFFF
+     452   00:03AB  D9                  	EXX
+     453   00:03AC  CD D8 03            	CALL    NUM1
+     454   00:03AF                      
+     455   00:03AF  01 FF FF            	LD  BC,-1000/0x10000 -1
+     456   00:03B2  D9                  	EXX
+     457   00:03B3  01 18 FC            	LD  BC,-1000&0xFFFF
+     458   00:03B6  D9                  	EXX
+     459   00:03B7  CD D8 03            	CALL    NUM1
+     460   00:03BA                      
+     461   00:03BA  01 FF FF            	LD  BC,-100/0x10000 -1
+     462   00:03BD  D9                  	EXX
+     463   00:03BE  01 9C FF            	LD  BC,-100&0xFFFF
+     464   00:03C1  D9                  	EXX
+     465   00:03C2  CD D8 03            	CALL    NUM1
+     466   00:03C5                      
+     467   00:03C5  01 FF FF            	LD  BC,-10/0x10000 -1
+     468   00:03C8  D9                  	EXX
+     469   00:03C9  01 F6 FF            	LD  BC,-10&0xFFFF
+     470   00:03CC  D9                  	EXX
+     471   00:03CD  CD D8 03            	CALL    NUM1
+     472   00:03D0                      
+     473   00:03D0  01 FF FF            	LD  BC,-1/0x10000 -1
+     474   00:03D3  D9                  	EXX
+     475   00:03D4  01 FF FF            	LD  BC,-1&0xFFFF
+     476   00:03D7  D9                  	EXX
+     477   00:03D8                      
+     478   00:03D8                      NUM1:   
+     479   00:03D8  3E 2F               	LD  A,'0'-1  ; '0' IN THE TILESET
+     480   00:03DA                      
+     481   00:03DA                      1:   
+     482   00:03DA  3C                  	INC A
+     483   00:03DB  D9                  	EXX
+     484   00:03DC  09                  	add HL,BC       ; low word
+     485   00:03DD  D9                  	EXX
+     486   00:03DE  ED 4A               	ADC HL,BC       ; high word
+     487   00:03E0  DA DA 03            	jp  C,1b
+     488   00:03E3                      
+     489   00:03E3  D9                  	EXX
+     490   00:03E4  ED 42               	SBC HL,BC       ; low word
+     491   00:03E6  D9                  	EXX
+     492   00:03E7  ED 42               	SBC HL,BC       ; high word
+     493   00:03E9                      
+     494   00:03E9  12                  	LD  (DE),A
+     495   00:03EA  13                  	INC DE
+     496   00:03EB  C9                  	RET
+     497   00:03EC                      
+     498   00:03EC                      ; ------------------------------------------------
+     499   00:03EC                      ; expand level  in A
+     500   00:03EC                      ;
+     501   00:03EC                      levelinit:
+     502   00:03EC  21 00 C0            	ld	hl,level_buffer
+     503   00:03EF  11 01 C0            	ld	de,level_buffer+1
+     504   00:03F2  AF                  	xor	a
+     505   00:03F3  77                  	ld	(hl),a
+     506   00:03F4  01 FF 17            	ld	bc,6*1024-1
+     507   00:03F7  ED B0               	ldir
+     508   00:03F9                      	
+     509   00:03F9  21 00 60            	ld	hl,	meta_pnt
+     510   00:03FC  11 00 C0            	ld	de,level_buffer
+     511   00:03FF  01 00 10            	ld	bc,64*64
+     512   00:0402  ED B0               	ldir
+     513   00:0404  C9                  	ret
+     514   00:0405                      	
+     515   00:0405                      ; ------------------------------------------------
+     516   00:0405                      ; rom header
+     517   00:0405                      
+     518   00:0405  (01)                    page 1
+     519   01:4000                      
+     520   01:4000                          code @ 0x4000
+     521   01:4000                      
+     522   01:4000                          org 04000h
+     523   01:4000  41 42                   db  041h,042h
+     524   01:4002  42 41                   dw  initmain
+     525   01:4004                          dz  'TRI004'
+     525   01:4004  54 52 49 30 30 34 00 
+     526   01:400B  00 (5)                  ds  5
+     527   01:4010                      
+     528   01:4010                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     529   01:4010                      ;
+     530   01:4010                      ; checkkbd: ckeck keyboard line
+     531   01:4010                      ; in:  E = row
+     532   01:4010                      ; out: L = bit pattern (1 = not pressed)
+     533   01:4010                      ;
+     534   01:4010                      ; row/bit|    7     6     5     4     3     2     1     0
+     535   01:4010                      ; -------+--------------------------------------------------
+     536   01:4010                      ;    0   |    7     6     5     4     3     2     1     0
+     537   01:4010                      ;    1   |    ;     ]     [     \     =     -     9     8
+     538   01:4010                      ;    2   |    B     A    ???    /     .     ,     '     `
+     539   01:4010                      ;    3   |    J     I     H     G     F     E     D     C
+     540   01:4010                      ;    4   |    R     Q     P     O     N     M     L     K
+     541   01:4010                      ;    5   |    Z     Y     X     W     V     U     T     S
+     542   01:4010                      ;    6   |   F3    F2    F1   CODE   CAP  GRAPH CTRL  SHIFT
+     543   01:4010                      ;    7   |   RET   SEL   BS   STOP   TAB   ESC   F5    F4
+     544   01:4010                      ;    8   |  RIGHT DOWN   UP   LEFT   DEL   INS  HOME  SPACE
+     545   01:4010                      ;    9   |    4     3     2     1     0     /     +     *
+     546   01:4010                      ;   10   |    .     ,     -     9     8     7     6     5
+     547   01:4010                      ;   11   |                           NO          YES
+     548   01:4010                      ;
+     549   01:4010                      ;
+     550   01:4010                      
+     551   01:4010  (01:00A9)           i8255portb  equ 0a9h        ; keyboard column input
+     552   01:4010  (01:00AA)           i8255portc  equ 0aah        ; leds, motor, cassette, kbd line
+     553   01:4010                      
+     554   01:4010                      checkkbd:
+     555   01:4010  DB AA                   in  a,(i8255portc)
+     556   01:4012  E6 F0                   and 011110000B          ; upper 4 bits contain info to preserve
+     557   01:4014  B3                      or  e
+     558   01:4015  D3 AA                   out (i8255portc),a
+     559   01:4017  DB A9                   in  a,(i8255portb)
+     560   01:4019  6F                      ld  l,a
+     561   01:401A  C9                      ret
+     562   01:401B                      
+     563   01:401B                      ; -----------------------------
+     564   01:401B                      ; parameters
+     565   01:401B                      ;
+     566   01:401B  (01:0040)           LvlWidth:   equ 64
+     567   01:401B  (01:0040)           LvlHigh:   	equ 64
+     568   01:401B                      
+     569   01:401B                      ;   nphase:     equ 4
+     570   01:401B                      ;   xstep:      equ 2
+     571   01:401B                      ;
+     572   01:401B                      
+     573   01:401B                      
+     574   01:401B  (01:0008)           maxspeed:   equ 8
+     575   01:401B  (01:001D)           max_enem:   equ 29      ; max number of enemies -> + 3 for ms  = 32 sprites
+     576   01:401B                      
+     577   01:401B                      ; ------------------------------
+     578   01:401B                      
+     579   01:401B                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     580   01:401B                      ; vdp access
+     581   01:401B                      
+     582   01:401B  (01:F3DF)           _vdpReg equ 0xF3DF
+     583   01:401B  (01:F3AE)           LINL40  equ 0xF3AE
+     584   01:401B                      
+     585   01:401B                      ; e = screen mode
+     586   01:401B                      _scr:
+     587   01:401B  3A E0 F3                ld  a,(_vdpReg+1)
+     588   01:401E  F6 02                   or 2
+     589   01:4020  32 E0 F3                ld  (_vdpReg+1),a
+     590   01:4023                      
+     591   01:4023  7B                      ld  a,e
+     592   01:4024  CD 5F 00                call 0x005f
+     593   01:4027                      
+     594   01:4027                          setvdpwvram 0x1800
+     594   01:4027  F3                >     di
+     594   01:4028                    >     _setvdpwvram value
+     594   01:4028                    >     if (value & 0xFF)
+     594   01:4028                    ~         ld  a,value & 0xFF
+     594   01:4028                    ~     else
+     594   01:4028  AF                >         xor a
+     594   01:4029                    >     endif
+     594   01:4029  D3 99             >     out (0x99),a
+     594   01:402B  3E 58             >     ld  a,0x40 + (value/256)
+     594   01:402D  D3 99             >     out (0x99),a
+     594   01:402F  FB                >     ei
+     595   01:4030                      
+     596   01:4030  76                      halt
+     597   01:4031  AF                      xor a               ;   clear top panel
+     598   01:4032  47                      ld  b,a
+     599   01:4033  3D                  	dec a
+     600   01:4034  D3 98               1:  out (0x98),a
+     601   01:4036  10 FC                   djnz    1b
+     602   01:4038  C9                      ret
+     603   01:4039                      
+     604   01:4039                      
+     605   01:4039                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     606   01:4039                      ;
+     607   01:4039                      ;   load tile sets and sprites
+     608   01:4039                      vraminit:
+     609   01:4039                      
+     610   01:4039                      
+     611   01:4039                      ; set sprites
+     612   01:4039                      
+     613   01:4039                          _setvdpwvram 0x3800
+     613   01:4039                    >     if (value & 0xFF)
+     613   01:4039                    ~         ld  a,value & 0xFF
+     613   01:4039                    ~     else
+     613   01:4039  AF                >         xor a
+     613   01:403A                    >     endif
+     613   01:403A  D3 99             >     out (0x99),a
+     613   01:403C  3E 78             >     ld  a,0x40 + (value/256)
+     613   01:403E  D3 99             >     out (0x99),a
+     614   01:4040  21 00 90                ld  hl,test_spt
+     615   01:4043  CD B0 40                call    write_256
+     616   01:4046                      
+     617   01:4046                          _setvdpwvram 0x1B80              ; sprites in the scorebar
+     617   01:4046                    >     if (value & 0xFF)
+     617   01:4046  3E 80             >         ld  a,value & 0xFF
+     617   01:4048                    >     else
+     617   01:4048                    ~         xor a
+     617   01:4048                    ~     endif
+     617   01:4048  D3 99             >     out (0x99),a
+     617   01:404A  3E 5B             >     ld  a,0x40 + (value/256)
+     617   01:404C  D3 99             >     out (0x99),a
+     618   01:404E  21 54 42                ld  hl,scorebar_sat
+     619   01:4051  CD B0 40                call    write_256
+     620   01:4054                      
+     621   01:4054                          _setvdpwvram 0x1C00
+     621   01:4054                    >     if (value & 0xFF)
+     621   01:4054                    ~         ld  a,value & 0xFF
+     621   01:4054                    ~     else
+     621   01:4054  AF                >         xor a
+     621   01:4055                    >     endif
+     621   01:4055  D3 99             >     out (0x99),a
+     621   01:4057  3E 5C             >     ld  a,0x40 + (value/256)
+     621   01:4059  D3 99             >     out (0x99),a
+     622   01:405B  21 00 98                ld  hl,scorebar 		;0x1BBF	; dummy tile set from basic rom
+     623   01:405E  CD B0 40                call    write_256
+     624   01:4061                      
+     625   01:4061                      	
+     626   01:4061                      ; set pat
+     627   01:4061                      
+     628   01:4061                          _setvdpwvram 0x0800
+     628   01:4061                    >     if (value & 0xFF)
+     628   01:4061                    ~         ld  a,value & 0xFF
+     628   01:4061                    ~     else
+     628   01:4061  AF                >         xor a
+     628   01:4062                    >     endif
+     628   01:4062  D3 99             >     out (0x99),a
+     628   01:4064  3E 48             >     ld  a,0x40 + (value/256)
+     628   01:4066  D3 99             >     out (0x99),a
+     629   01:4068  21 00 78                ld  hl,chr_tileset1
+     630   01:406B  CD B0 40                call    write_256
+     631   01:406E                      
+     632   01:406E                          _setvdpwvram 0x1000
+     632   01:406E                    >     if (value & 0xFF)
+     632   01:406E                    ~         ld  a,value & 0xFF
+     632   01:406E                    ~     else
+     632   01:406E  AF                >         xor a
+     632   01:406F                    >     endif
+     632   01:406F  D3 99             >     out (0x99),a
+     632   01:4071  3E 50             >     ld  a,0x40 + (value/256)
+     632   01:4073  D3 99             >     out (0x99),a
+     633   01:4075  21 00 78                ld  hl,chr_tileset1
+     634   01:4078  CD B0 40                call    write_256
+     635   01:407B                      
+     636   01:407B                          _setvdpwvram 0x2800
+     636   01:407B                    >     if (value & 0xFF)
+     636   01:407B                    ~         ld  a,value & 0xFF
+     636   01:407B                    ~     else
+     636   01:407B  AF                >         xor a
+     636   01:407C                    >     endif
+     636   01:407C  D3 99             >     out (0x99),a
+     636   01:407E  3E 68             >     ld  a,0x40 + (value/256)
+     636   01:4080  D3 99             >     out (0x99),a
+     637   01:4082  21 00 70                ld  hl,chr_tileset0
+     638   01:4085  CD B0 40                call    write_256
+     639   01:4088                      
+     640   01:4088                          _setvdpwvram 0x3000
+     640   01:4088                    >     if (value & 0xFF)
+     640   01:4088                    ~         ld  a,value & 0xFF
+     640   01:4088                    ~     else
+     640   01:4088  AF                >         xor a
+     640   01:4089                    >     endif
+     640   01:4089  D3 99             >     out (0x99),a
+     640   01:408B  3E 70             >     ld  a,0x40 + (value/256)
+     640   01:408D  D3 99             >     out (0x99),a
+     641   01:408F  21 00 70                ld  hl,chr_tileset0
+     642   01:4092  CD B0 40                call    write_256
+     643   01:4095                      
+     644   01:4095                      ; set colours
+     645   01:4095                      
+     646   01:4095                          _setvdpwvram 0x0000
+     646   01:4095                    >     if (value & 0xFF)
+     646   01:4095                    ~         ld  a,value & 0xFF
+     646   01:4095                    ~     else
+     646   01:4095  AF                >         xor a
+     646   01:4096                    >     endif
+     646   01:4096  D3 99             >     out (0x99),a
+     646   01:4098  3E 40             >     ld  a,0x40 + (value/256)
+     646   01:409A  D3 99             >     out (0x99),a
+     647   01:409C  21 00 80                ld  hl,clr_tileset0
+     648   01:409F  CD B0 40                call    write_256
+     649   01:40A2                      
+     650   01:40A2                          _setvdpwvram 0x2000
+     650   01:40A2                    >     if (value & 0xFF)
+     650   01:40A2                    ~         ld  a,value & 0xFF
+     650   01:40A2                    ~     else
+     650   01:40A2  AF                >         xor a
+     650   01:40A3                    >     endif
+     650   01:40A3  D3 99             >     out (0x99),a
+     650   01:40A5  3E 60             >     ld  a,0x40 + (value/256)
+     650   01:40A7  D3 99             >     out (0x99),a
+     651   01:40A9  21 00 88                ld  hl,clr_tileset1
+     652   01:40AC  CD B0 40                call    write_256
+     653   01:40AF                      
+     654   01:40AF  C9                      ret
+     655   01:40B0                      
+     656   01:40B0                      write_256:
+     657   01:40B0  01 98 00                ld  bc,0x0098
+     658   01:40B3                      	repeat 8
+     659   01:40B3                    < 1:  outi
+     660   01:40B3                    < 	jp nz,1b
+     661   01:40B3                    <     endrepeat
+     661   01:40B3  ED A3 C2 B3 40 ED A3 C2 B8 40 ED A3 C2 BD 40 ED 
+     661   01:40C3  A3 C2 C2 40 ED A3 C2 C7 40 ED A3 C2 CC 40 ED A3 
+     661   01:40D3  C2 D1 40 ED A3 C2 D6 40 
+     662   01:40DB  C9                      ret
+     663   01:40DC                      
+     664   01:40DC                      
+     665   01:40DC                      	
+     666   01:40DC                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     667   01:40DC                      ; set pages and subslot
+     668   01:40DC                      ;
+     669   01:40DC                      
+     670   01:40DC                      
+     671   01:40DC  (01:0024)           ENASLT:         equ     024h
+     672   01:40DC  (01:0138)           RSLREG:         equ     0138h
+     673   01:40DC  (01:FCC1)           EXPTBL:         equ     0FCC1h  ; Bios Slot / Expansion Slot
+     674   01:40DC                      
+     675   01:40DC                      
+     676   01:40DC                      
+     677   01:40DC                      ; -----------------------
+     678   01:40DC                      ; SEARCH_SLOTSET
+     679   01:40DC                      ; Posiciona en pagina 2
+     680   01:40DC                      ; Nuestro ROM.
+     681   01:40DC                      ; -----------------------
+     682   01:40DC                      
+     683   01:40DC                      rominit:
+     684   01:40DC                      search_slotset:
+     685   01:40DC  F3                  	di
+     686   01:40DD  CD E3 40                call    search_slot
+     687   01:40E0  C3 24 00                jp      ENASLT
+     688   01:40E3                      
+     689   01:40E3                      ; -----------------------
+     690   01:40E3                      ; SEARCH_SLOT
+     691   01:40E3                      ; Busca slot de nuestro rom
+     692   01:40E3                      ; -----------------------
+     693   01:40E3                      
+     694   01:40E3                      search_slot:
+     695   01:40E3  CD 38 01                call    RSLREG
+     696   01:40E6  0F                      rrca
+     697   01:40E7  0F                      rrca
+     698   01:40E8  E6 03                   and     3
+     699   01:40EA  4F                      ld      c,a
+     700   01:40EB  06 00                   ld      b,0
+     701   01:40ED  21 C1 FC                ld      hl,EXPTBL
+     702   01:40F0  09                      add     hl,bc
+     703   01:40F1  7E                      ld      a,(hl)
+     704   01:40F2  E6 80                   and     080h
+     705   01:40F4  B1                      or      c
+     706   01:40F5  4F                      ld      c,a
+     707   01:40F6  23                      inc     hl
+     708   01:40F7  23                      inc     hl
+     709   01:40F8  23                      inc     hl
+     710   01:40F9  23                      inc     hl
+     711   01:40FA  7E                      ld      a,(hl)
+     712   01:40FB  E6 0C                   and     0Ch
+     713   01:40FD  B1                      or      c;
+     714   01:40FE  26 80                   ld      h,080h
+     715   01:4100  32 00 D8                ld      (slotvar),a
+     716   01:4103  C9                      ret
+     717   01:4104                      
+     718   01:4104                      ; ------------------------------
+     719   01:4104                      ; SETROMPAGE0
+     720   01:4104                      ; Posiciona nuestro cartucho en
+     721   01:4104                      ; Pagina 0
+     722   01:4104                      ; -----------------------------
+     723   01:4104                      
+     724   01:4104                      setrompage0:
+     725   01:4104  3A 00 D8                ld      a,(slotvar)
+     726   01:4107  18 03                   jr      setslotpage0
+     727   01:4109                      
+     728   01:4109                      ; ------------------------------
+     729   01:4109                      ; RECBIOS
+     730   01:4109                      ; Posiciona la bios ROM
+     731   01:4109                      ; -------------------------------
+     732   01:4109                      recbios:
+     733   01:4109  3A C1 FC                ld      a,(EXPTBL)
+     734   01:410C                      
+     735   01:410C                      ; ---------------------------
+     736   01:410C                      ; SETSLOTPAGE0
+     737   01:410C                      ; Posiciona el slot pasado
+     738   01:410C                      ; en pagina 0 del Z80
+     739   01:410C                      ; A: Formato FxxxSSPP
+     740   01:410C                      ; ----------------------------
+     741   01:410C                      
+     742   01:410C                      setslotpage0:
+     743   01:410C  F3                      di
+     744   01:410D  47                      ld      b,a                 ; B = Slot param in FxxxSSPP format
+     745   01:410E                      
+     746   01:410E  DB A8                   in      a,(0A8h)
+     747   01:4110  E6 FC                   and     0xFC
+     748   01:4112  57                      ld      d,a                 ; D = Primary slot value
+     749   01:4113                      
+     750   01:4113  78                      ld      a,b
+     751   01:4114                      
+     752   01:4114  E6 03                   and     3
+     753   01:4116  B2                      or      d
+     754   01:4117  57                      ld      d,a                 ; D = Final Value for primary slot
+     755   01:4118                      
+     756   01:4118                          ; Check if expanded
+     757   01:4118  78                      ld      a,b
+     758   01:4119  CB 7F                   bit     7,a
+     759   01:411B  28 21                   jr      z,1f    ; Not Expanded
+     760   01:411D                      
+     761   01:411D  E6 03                   and     3
+     762   01:411F  0F                      rrca
+     763   01:4120  0F                      rrca
+     764   01:4121  E6 C0                   and     0xC0
+     765   01:4123  4F                      ld      c,a
+     766   01:4124  7A                      ld      a,d
+     767   01:4125  E6 3F                   and     0x3F
+     768   01:4127  B1                      or      c
+     769   01:4128  4F                      ld      c,a                 ; Primary slot value with main slot in page 3
+     770   01:4129                      
+     771   01:4129  78                      ld      a,b
+     772   01:412A  E6 0C                   and     0x0C
+     773   01:412C  0F                      rrca
+     774   01:412D  0F                      rrca
+     775   01:412E  E6 03                   and     3
+     776   01:4130  47                      ld      b,a                 ; B = Expanded slot in page 3
+     777   01:4131  79                      ld      a,c
+     778   01:4132  D3 A8                   out     (0A8h),a            ; Slot : Main Slot, xx, xx, Main slot
+     779   01:4134  3A FF FF                ld      a,(0FFFFh)
+     780   01:4137  2F                      cpl
+     781   01:4138  E6 FC                   and     0xFC
+     782   01:413A  B0                      or      b
+     783   01:413B  32 FF FF                ld      (0FFFFh),a          ; Expanded slot selected
+     784   01:413E                      
+     785   01:413E                      1:
+     786   01:413E  7A                      ld      a,d             ; A = Final value
+     787   01:413F  D3 A8                   out     (0A8h),a		; Slot Final. Ram, rom c, rom c, Main
+     788   01:4141  C9                      ret
+     789   01:4142                      
+     790   01:4142                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     791   01:4142                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     792   01:4142                      ; ROM initialisation
+     793   01:4142                      
+     794   01:4142                      initmain:
+     795   01:4142                      
+     796   01:4142  CD DC 40            	call    rominit     ; now the first 32KB of the rom are active
+     797   01:4145                          
+     798   01:4145  1E 02                   ld  e,2
+     799   01:4147  CD 1B 40                call _scr			; screen 2
+     800   01:414A                      	
+     801   01:414A                          setVdp 7,0x00
+     801   01:414A  F3                >     di
+     801   01:414B                    >     _setVdp register,value
+     801   01:414B  3E 00             >     ld  a,value
+     801   01:414D  D3 99             >     out (0x99),a
+     801   01:414F  3E 87             >     ld  a,register + 0x80
+     801   01:4151  D3 99             >     out (0x99),a
+     801   01:4153  FB                >     ei
+     802   01:4154                      
+     803   01:4154  21 00 00                ld  hl,0
+     804   01:4157  22 0C D8                ld  (xmap),hl
+     805   01:415A  22 0F D8                ld  (ymap),hl
+     806   01:415D  3E 01                   ld  a,1
+     807   01:415F  32 0B D8                ld  (dxmap),a
+     808   01:4162  32 0E D8                ld  (dymap),a
+     809   01:4165                      
+     810   01:4165                      
+     811   01:4165  3E 0C                   ld  a,3*4
+     812   01:4167  32 16 D8                ld  (visible_sprts),a
+     813   01:416A                      
+     814   01:416A  3E 00                   ld  a,0
+     815   01:416C  32 14 D8                ld  (aniframe),a
+     816   01:416F  32 15 D8                ld  (anispeed),a
+     817   01:4172                      
+     818   01:4172  CD 04 41            	call	setrompage0		; 48K of rom are active - bios is excluded
+     819   01:4175                          
+     820   01:4175  CD 39 40            	call    vraminit
+     821   01:4178                      	
+     822   01:4178  3E 01               	ld	a,1
+     823   01:417A  CD EC 03            	call	levelinit
+     824   01:417D                      
+     825   01:417D  21 18 D8                ld  hl,ram_sat
+     826   01:4180  11 19 D8                ld  de,ram_sat+1
+     827   01:4183  01 7F 00                ld  bc,127
+     828   01:4186  36 FF                   ld  (hl),-1
+     829   01:4188  ED B0                   ldir
+     830   01:418A                      
+     831   01:418A  AF                      xor a
+     832   01:418B  32 17 D8                ld  (reverse_sat),a
+     833   01:418E                      	
+     834   01:418E  FB                  	ei
+     835   01:418F                      	
+     836   01:418F                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     837   01:418F                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     838   01:418F                      ;
+     839   01:418F                      ;   main loop
+     840   01:418F                      ;
+     841   01:418F                      
+     842   01:418F                      
+     843   01:418F                      main_loop:
+     844   01:418F                      
+     845   01:418F                          ; x speed control
+     846   01:418F  1E 08                   ld  e,8
+     847   01:4191  CD 10 40                call    checkkbd
+     848   01:4194                      
+     849   01:4194  7D                      ld  a,l
+     850   01:4195  E6 80                   and 0x80    ; right
+     851   01:4197  20 0B                   jr  nz,1f
+     852   01:4199  3A 0B D8                ld  a,(dxmap)
+     853   01:419C  FE 08                   cp  maxspeed        ; MAX SPEED
+     854   01:419E  28 04                   jr  z,1f
+     855   01:41A0  3C                      inc a
+     856   01:41A1  32 0B D8                ld  (dxmap),a
+     857   01:41A4                      1:
+     858   01:41A4  7D                      ld  a,l
+     859   01:41A5  E6 10                   and 0x10    ; left
+     860   01:41A7  20 0B                   jr  nz,1f
+     861   01:41A9  3A 0B D8                ld  a,(dxmap)
+     862   01:41AC  FE F8                   cp  -maxspeed       ; MAX SPEED
+     863   01:41AE  28 04                   jr  z,1f
+     864   01:41B0  3D                      dec a
+     865   01:41B1  32 0B D8                ld  (dxmap),a
+     866   01:41B4                      1:
+     867   01:41B4                          ; y position
+     868   01:41B4  7D                      ld  a,l
+     869   01:41B5  E6 20                   and 0x20    ; up
+     870   01:41B7  20 0B                   jr  nz,1f
+     871   01:41B9  3A 0E D8                ld  a,(dymap)
+     872   01:41BC  FE F8                   cp  -maxspeed        ; MAX SPEED
+     873   01:41BE  28 04                   jr  z,1f
+     874   01:41C0  3D                      dec a
+     875   01:41C1  32 0E D8                ld  (dymap),a
+     876   01:41C4                      1:
+     877   01:41C4  7D                      ld  a,l
+     878   01:41C5  E6 40                   and 0x40    ; down
+     879   01:41C7  20 0B                   jr  nz,1f
+     880   01:41C9  3A 0E D8                ld  a,(dymap)
+     881   01:41CC  FE 08                   cp  maxspeed       ; MAX SPEED
+     882   01:41CE  28 04                   jr  z,1f
+     883   01:41D0  3C                      inc a
+     884   01:41D1  32 0E D8                ld  (dymap),a
+     885   01:41D4                      1:
+     886   01:41D4                      
+     887   01:41D4                      
+     888   01:41D4                          ; wait refresh and update map position
+     889   01:41D4                      
+     890   01:41D4  76                      halt
+     891   01:41D5  2A 0C D8                ld  hl,(xmap)
+     892   01:41D8  3A 0B D8                ld  a,(dxmap)
+     893   01:41DB  CB 2F                   sra a
+     894   01:41DD  CB 2F                   sra a
+     895   01:41DF  5F                      ld  e,a
+     896   01:41E0  87                      add a,a
+     897   01:41E1  9F                      sbc a,a
+     898   01:41E2  57                      ld  d,a
+     899   01:41E3  19                      add hl,de
+     900   01:41E4  22 0C D8                ld  (xmap),hl
+     901   01:41E7                      
+     902   01:41E7  2A 0F D8                ld  hl,(ymap)
+     903   01:41EA  3A 0E D8                ld  a,(dymap)
+     904   01:41ED  CB 2F                   sra a
+     905   01:41EF  CB 2F                   sra a
+     906   01:41F1  5F                      ld  e,a
+     907   01:41F2  87                      add a,a
+     908   01:41F3  9F                      sbc a,a
+     909   01:41F4  57                      ld  d,a
+     910   01:41F5  19                      add hl,de
+     911   01:41F6  22 0F D8                ld  (ymap),hl
+     912   01:41F9                      
+     913   01:41F9                          ; Test map limits
+     914   01:41F9                      
+     915   01:41F9  2A 0C D8                ld  hl,(xmap)
+     916   01:41FC  11 00 01                ld  de,8*(LvlWidth)-256
+     917   01:41FF  A7                      and a
+     918   01:4200  ED 52                   sbc hl,de
+     919   01:4202  F2 20 42                jp  p,xendmapr   	; stop right
+     920   01:4205                      
+     921   01:4205  A7                      and a
+     922   01:4206  ED 5A                   adc hl,de
+     923   01:4208  FA 2D 42                jp  m,xendmapl		; stop left
+     924   01:420B                      testy:
+     925   01:420B  2A 0F D8                ld  hl,(ymap)
+     926   01:420E  11 80 01                ld  de,8*(LvlHigh)-128
+     927   01:4211  A7                      and a
+     928   01:4212  ED 52                   sbc hl,de
+     929   01:4214  F2 3A 42                jp  p,yendmapd   	; stop down
+     930   01:4217                      
+     931   01:4217  A7                      and a
+     932   01:4218  ED 5A                   adc hl,de
+     933   01:421A  FA 47 42                jp  m,yendmapl		; stop up
+     934   01:421D                      
+     935   01:421D  C3 8F 41                jp  main_loop
+     936   01:4220                      
+     937   01:4220                      xendmapr:
+     938   01:4220  21 00 01                ld  hl,8*(LvlWidth)-256
+     939   01:4223  22 0C D8                ld  (xmap),hl
+     940   01:4226  AF                  	xor a
+     941   01:4227  32 0B D8            	ld	(dxmap),a
+     942   01:422A  C3 0B 42                jp  testy
+     943   01:422D                      xendmapl:
+     944   01:422D  21 00 00                ld  hl,0
+     945   01:4230  22 0C D8                ld  (xmap),hl
+     946   01:4233  AF                  	xor a
+     947   01:4234  32 0B D8            	ld	(dxmap),a
+     948   01:4237  C3 0B 42                jp  testy
+     949   01:423A                      yendmapd:
+     950   01:423A  21 80 01                ld  hl,8*(LvlHigh)-128
+     951   01:423D  22 0F D8                ld  (ymap),hl
+     952   01:4240  AF                  	xor a
+     953   01:4241  32 0E D8            	ld	(dymap),a
+     954   01:4244  C3 8F 41                jp  main_loop
+     955   01:4247                      yendmapl:
+     956   01:4247  21 00 00                ld  hl,0
+     957   01:424A  22 0F D8                ld  (ymap),hl
+     958   01:424D  AF                  	xor a
+     959   01:424E  32 0E D8            	ld	(dymap),a
+     960   01:4251  C3 8F 41                jp  main_loop
+     961   01:4254                      
+     962   01:4254                      	
+     963   01:4254                      
+     964   01:4254                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     965   01:4254                      ;   all sprites in the score bar
+     966   01:4254                      
+     967   01:4254                      
+     968   01:4254                          ; place the score bar
+     969   01:4254                      scorebar_sat:
+     970   01:4254  (01:0080)           counter:=32*4
+     971   01:4254                          repeat  6
+     972   01:4254                    <     repeat  4
+     973   01:4254                    <     db  @@# * 8 -8-1
+     974   01:4254                    <     if  (!((@@#/4) & 1))
+     975   01:4254                    <         if  ((counter!=4*8+32*4) & (counter!=4*12+32*4))
+     976   01:4254                    <             db  (@# * 16)+192
+     977   01:4254                    <         else
+     978   01:4254                    <             db  0
+     979   01:4254                    <         endif
+     980   01:4254                    <     else
+     981   01:4254                    <         db  96+(@# * 16)
+     982   01:4254                    <     endif
+     983   01:4254                    <     db  0+counter
+     984   01:4254                    <     db  14+8-counter/16
+     985   01:4254                    < counter:=counter+4
+     986   01:4254                    <     endrepeat
+     987   01:4254                    <     endrepeat
+     987   01:4254  F7 C0 80 0E F7 D0 84 0E F7 E0 88 0E F7 F0 8C 0E 
+     987   01:4264  FF C0 90 0D FF D0 94 0D FF E0 98 0D FF F0 9C 0D 
+     987   01:4274  07 00 A0 0C 07 D0 A4 0C 07 E0 A8 0C 07 F0 AC 0C 
+     987   01:4284  0F 00 B0 0B 0F D0 B4 0B 0F E0 B8 0B 0F F0 BC 0B 
+     987   01:4294  17 60 C0 0A 17 70 C4 0A 17 80 C8 0A 17 90 CC 0A 
+     987   01:42A4  1F 60 D0 09 1F 70 D4 09 1F 80 D8 09 1F 90 DC 09 
+     988   01:42B4                      
+     989   01:42B4                          repeat  4
+     990   01:42B4                    <     db  3*16
+     991   01:42B4                    <     db  96+(@# * 16)
+     992   01:42B4                    <     db  counter
+     993   01:42B4                    <     db  15
+     994   01:42B4                    < counter:=counter+4
+     995   01:42B4                    <     endrepeat
+     995   01:42B4  30 60 E0 0F 30 70 E4 0F 30 80 E8 0F 30 90 EC 0F 
+     996   01:42C4                      
+     997   01:42C4  3E                      db  64-2
+     998   01:42C5  00                      db  0
+     999   01:42C6  98                      db  0x98
+    1000   01:42C7  00                      db  0
+    1001   01:42C8                      
+    1002   01:42C8                      
+    1003   01:42C8                      ; *** PNT data in rom ***
+    1004   01:42C8                      
+    1005   01:42C8                          code
+    1006   01:42C8  (0D38)                  ALIGN 0x01000
+    1007   01:5000                      
+    1008   01:5000                      meta_pnt_table:
+    1009   01:5000  (1000)                  incbin metavec48.bin
+    1010   01:6000                      
+    1011   01:6000                      meta_pnt:
+    1012   01:6000  (1000)              	incbin metamap48.bin
+    1013   01:7000                      
+    1014   01:7000                      	
+    1015   01:7000                      ; *** tile set data in rom ***
+    1016   01:7000                          code
+    1017   01:7000                      chr_tileset0:
+    1018   01:7000  (0800)                  incbin "testpat0.bin",7,256*8
+    1019   01:7800                      chr_tileset1:
+    1020   01:7800  (0800)                  incbin "testpat1.bin",7,256*8
+    1021   01:8000                      
+    1022   01:8000                      clr_tileset0:
+    1023   01:8000  (0800)                  incbin "testcol0.bin",7,256*8
+    1024   01:8800                      clr_tileset1:
+    1025   01:8800  (0800)                  incbin "testcol1.bin",7,256*8
+    1026   01:9000                      	
+    1027   01:9000                      	code
+    1028   01:9000                      test_spt:
+    1029   01:9000                          include uridium.asm
+       1.  01:9000                      uridium:
+       2.  01:9000                      uridium_0: 
+       3.  01:9000                          defb 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+       3.  01:9000  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+       3.  01:9010  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+       4.  01:9020                      
+       5.  01:9020                      uridium_1: 
+       6.  01:9020                          defb 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+       6.  01:9020  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+       6.  01:9030  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+       7.  01:9040                      
+       8.  01:9040                      uridium_2: 
+       9.  01:9040                          defb 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+       9.  01:9040  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+       9.  01:9050  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+      10.  01:9060                      
+      11.  01:9060                      uridium_3: 
+      12.  01:9060                          defb 0x01,0x01,0x31,0x39,0x1C,0x0B,0x07,0xF7,0xF7,0x06,0x0B,0x1C,0x39,0x31,0x01,0x01,0x80,0x80,0x8C,0x9C,0x38,0xD0,0xE0,0xAF,0xAF,0x60,0xD0,0x38,0x9C,0x8C,0x80,0x80
+      12.  01:9060  01 01 31 39 1C 0B 07 F7 F7 06 0B 1C 39 31 01 01 
+      12.  01:9070  80 80 8C 9C 38 D0 E0 AF AF 60 D0 38 9C 8C 80 80 
+      13.  01:9080                      
+      14.  01:9080                      uridium_4: 
+      15.  01:9080                          defb 0x00,0x00,0x00,0x01,0x00,0x01,0x03,0x17,0x03,0x01,0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80,0xD0,0x80,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+      15.  01:9080  00 00 00 01 00 01 03 17 03 01 00 01 00 00 00 00 
+      15.  01:9090  00 00 00 00 00 00 80 D0 80 00 00 00 00 00 00 00 
+      16.  01:90A0                      
+      17.  01:90A0                      uridium_5: 
+      18.  01:90A0                          defb 0x00,0x00,0x00,0x00,0x08,0x01,0x03,0x07,0x03,0x01,0x08,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x20,0x00,0x80,0xC0,0x80,0x00,0x20,0x00,0x00,0x00,0x00,0x00
+      18.  01:90A0  00 00 00 00 08 01 03 07 03 01 08 00 00 00 00 00 
+      18.  01:90B0  00 00 00 00 20 00 80 C0 80 00 20 00 00 00 00 00 
+      19.  01:90C0                      
+      20.  01:90C0                      uridium_6: 
+      21.  01:90C0                          defb 0x03,0x02,0x07,0x07,0x0F,0x0F,0x7F,0xFF,0x80,0x7F,0x00,0x0F,0x07,0x07,0x03,0x03,0xFF,0x06,0xEC,0xD8,0xB0,0xE0,0xFE,0xFF,0x01,0xFE,0x00,0xB0,0xD8,0xEC,0xF6,0xFF
+      21.  01:90C0  03 02 07 07 0F 0F 7F FF 80 7F 00 0F 07 07 03 03 
+      21.  01:90D0  FF 06 EC D8 B0 E0 FE FF 01 FE 00 B0 D8 EC F6 FF 
+      22.  01:90E0                      
+      23.  01:90E0                      uridium_7: 
+      24.  01:90E0                          defb 0xFF,0x60,0x3F,0x1F,0x0F,0x07,0x7F,0xFF,0x80,0x7F,0x00,0x0F,0x1F,0x3F,0x7F,0xFF,0xC0,0x40,0x60,0xA0,0xB0,0xF0,0xFE,0xFF,0x01,0xFE,0x00,0xB0,0xA0,0x60,0x40,0xC0
+      24.  01:90E0  FF 60 3F 1F 0F 07 7F FF 80 7F 00 0F 1F 3F 7F FF 
+      24.  01:90F0  C0 40 60 A0 B0 F0 FE FF 01 FE 00 B0 A0 60 40 C0 
+      25.  01:9100                      
+      26.  01:9100                      uridium_8: 
+      27.  01:9100                          defb 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x2D,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x1E,0xFF,0x1E,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+      27.  01:9100  00 00 00 00 00 00 00 2D 00 00 00 00 00 00 00 00 
+      27.  01:9110  00 00 00 00 00 00 1E FF 1E 00 00 00 00 00 00 00 
+      28.  01:9120                      
+      29.  01:9120                      uridium_9: 
+      30.  01:9120                          defb 0x00,0x00,0x00,0xB7,0x00,0x00,0x00,0x2D,0x00,0x00,0x00,0xB7,0x00,0x00,0x00,0x00,0x00,0x00,0x78,0xFC,0x78,0x00,0x1E,0xFF,0x1E,0x00,0x78,0xFC,0x78,0x00,0x00,0x00
+      30.  01:9120  00 00 00 B7 00 00 00 2D 00 00 00 B7 00 00 00 00 
+      30.  01:9130  00 00 78 FC 78 00 1E FF 1E 00 78 FC 78 00 00 00 
+      31.  01:9140                      
+      32.  01:9140                      uridium_10: 
+      33.  01:9140                          defb 0x00,0x00,0x1E,0x3F,0x1E,0x00,0x78,0xFF,0x78,0x00,0x1E,0x3F,0x1E,0x00,0x00,0x00,0x00,0x00,0x00,0xED,0x00,0x00,0x00,0xB4,0x00,0x00,0x00,0xED,0x00,0x00,0x00,0x00
+      33.  01:9140  00 00 1E 3F 1E 00 78 FF 78 00 1E 3F 1E 00 00 00 
+      33.  01:9150  00 00 00 ED 00 00 00 B4 00 00 00 ED 00 00 00 00 
+      34.  01:9160                      
+      35.  01:9160                      uridium_11: 
+      36.  01:9160                          defb 0x00,0x00,0x00,0x00,0x00,0x00,0x78,0xFF,0x78,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xB4,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+      36.  01:9160  00 00 00 00 00 00 78 FF 78 00 00 00 00 00 00 00 
+      36.  01:9170  00 00 00 00 00 00 00 B4 00 00 00 00 00 00 00 00 
+      37.  01:9180                      
+      38.  01:9180                      uridium_12: 
+      39.  01:9180                          defb 0x07,0x18,0x20,0x5F,0x47,0x87,0x87,0x87,0x87,0x87,0x47,0x5F,0x20,0x18,0x07,0x00,0xC0,0x30,0x08,0xC4,0xC4,0xC2,0xC2,0xC2,0xC2,0xC2,0xC4,0xF4,0x08,0x30,0xC0,0x00
+      39.  01:9180  07 18 20 5F 47 87 87 87 87 87 47 5F 20 18 07 00 
+      39.  01:9190  C0 30 08 C4 C4 C2 C2 C2 C2 C2 C4 F4 08 30 C0 00 
+      40.  01:91A0                      
+      41.  01:91A0                      uridium_13: 
+      42.  01:91A0                          defb 0x07,0x18,0x20,0x4F,0x5E,0x9E,0x80,0x8F,0x9E,0x9E,0x5E,0x5F,0x20,0x18,0x07,0x00,0xC0,0x30,0x08,0xE4,0xF4,0xF2,0xF2,0xE2,0x02,0xF2,0xF4,0xF4,0x08,0x30,0xC0,0x00
+      42.  01:91A0  07 18 20 4F 5E 9E 80 8F 9E 9E 5E 5F 20 18 07 00 
+      42.  01:91B0  C0 30 08 E4 F4 F2 F2 E2 02 F2 F4 F4 08 30 C0 00 
+      43.  01:91C0                      
+      44.  01:91C0                      uridium_14: 
+      45.  01:91C0                          defb 0x07,0x18,0x20,0x4F,0x5E,0x9E,0x80,0x8F,0x80,0x9E,0x5E,0x4F,0x20,0x18,0x07,0x00,0xC0,0x30,0x08,0xE4,0xF4,0xF2,0xF2,0xE2,0xF2,0xF2,0xF4,0xE4,0x08,0x30,0xC0,0x00
+      45.  01:91C0  07 18 20 4F 5E 9E 80 8F 80 9E 5E 4F 20 18 07 00 
+      45.  01:91D0  C0 30 08 E4 F4 F2 F2 E2 F2 F2 F4 E4 08 30 C0 00 
+      46.  01:91E0                      
+      47.  01:91E0                      uridium_15: 
+      48.  01:91E0                          defb 0x07,0x18,0x20,0x5E,0x5E,0x9E,0x9E,0x9E,0x9F,0x80,0x40,0x40,0x20,0x18,0x07,0x00,0xC0,0x30,0x08,0xF4,0xF4,0xF2,0xF2,0xF2,0xF2,0xF2,0xF4,0xF4,0x08,0x30,0xC0,0x00
+      48.  01:91E0  07 18 20 5E 5E 9E 9E 9E 9F 80 40 40 20 18 07 00 
+      48.  01:91F0  C0 30 08 F4 F4 F2 F2 F2 F2 F2 F4 F4 08 30 C0 00 
+      49.  01:9200                      
+      50.  01:9200                      uridium_16: 
+      51.  01:9200                          defb 0x00,0x3F,0x01,0x00,0x00,0x0E,0x18,0x37,0x37,0x10,0x0E,0x00,0x00,0x01,0x3F,0x00,0x00,0xC0,0x20,0xD0,0x68,0x34,0x1E,0x92,0xDA,0x1E,0x00,0x68,0xD0,0xA0,0xC0,0x00
+      51.  01:9200  00 3F 01 00 00 0E 18 37 37 10 0E 00 00 01 3F 00 
+      51.  01:9210  00 C0 20 D0 68 34 1E 92 DA 1E 00 68 D0 A0 C0 00 
+      52.  01:9220                      
+      53.  01:9220                      uridium_17: 
+      54.  01:9220                          defb 0x00,0x03,0x04,0x0B,0x16,0x2C,0x78,0x49,0x5B,0x78,0x00,0x16,0x0B,0x05,0x03,0x00,0x00,0xFC,0x80,0x00,0x00,0x70,0x18,0xEC,0xEC,0x08,0x70,0x00,0x00,0x80,0xFC,0x00
+      54.  01:9220  00 03 04 0B 16 2C 78 49 5B 78 00 16 0B 05 03 00 
+      54.  01:9230  00 FC 80 00 00 70 18 EC EC 08 70 00 00 80 FC 00 
+      55.  01:9240                      
+      56.  01:9240                      uridium_18: 
+      57.  01:9240                          defb 0x25,0x12,0x09,0x04,0x04,0x02,0x02,0x02,0x02,0x02,0x04,0x04,0x09,0x12,0x25,0x00,0x60,0xB0,0x58,0xAC,0xAC,0x56,0x56,0x56,0x56,0x56,0xAC,0xAC,0x58,0xB0,0x60,0x00
+      57.  01:9240  25 12 09 04 04 02 02 02 02 02 04 04 09 12 25 00 
+      57.  01:9250  60 B0 58 AC AC 56 56 56 56 56 AC AC 58 B0 60 00 
+      58.  01:9260                      
+      59.  01:9260                      uridium_19: 
+      60.  01:9260                          defb 0x06,0x0D,0x1A,0x35,0x35,0x6A,0x6A,0x6A,0x6A,0x6A,0x35,0x35,0x1A,0x0D,0x06,0x00,0xA4,0x48,0x90,0x20,0x20,0x40,0x40,0x40,0x40,0x40,0x20,0x20,0x90,0x48,0xA4,0x00
+      60.  01:9260  06 0D 1A 35 35 6A 6A 6A 6A 6A 35 35 1A 0D 06 00 
+      60.  01:9270  A4 48 90 20 20 40 40 40 40 40 20 20 90 48 A4 00 
+      61.  01:9280                      
+      62.  01:9280                      uridium_20: 
+      63.  01:9280                          defb 0x7F,0xEA,0xAA,0xAA,0xAA,0xAA,0xBE,0xFE,0x86,0x63,0x31,0x19,0x0D,0x07,0x03,0x01,0xFC,0xAE,0xAA,0xAA,0xAA,0xAA,0xFA,0xFE,0xC2,0x8C,0x18,0x30,0x60,0xC0,0x80,0x00
+      63.  01:9280  7F EA AA AA AA AA BE FE 86 63 31 19 0D 07 03 01 
+      63.  01:9290  FC AE AA AA AA AA FA FE C2 8C 18 30 60 C0 80 00 
+      64.  01:92A0                      
+      65.  01:92A0                      uridium_21: 
+      66.  01:92A0                          defb 0x00,0x7F,0xC1,0xFF,0x83,0xFF,0x83,0xFF,0x80,0xFF,0x83,0xFF,0x83,0xFF,0xC1,0x7F,0x00,0x80,0x40,0x60,0x30,0x18,0x8C,0xC6,0x7F,0xC6,0x8C,0x18,0x30,0x60,0x40,0x80
+      66.  01:92A0  00 7F C1 FF 83 FF 83 FF 80 FF 83 FF 83 FF C1 7F 
+      66.  01:92B0  00 80 40 60 30 18 8C C6 7F C6 8C 18 30 60 40 80 
+      67.  01:92C0                      
+      68.  01:92C0                      uridium_22: 
+      69.  01:92C0                          defb 0x00,0x01,0x03,0x06,0x0C,0x18,0x31,0x43,0x7F,0x5F,0x55,0x55,0x55,0x55,0x75,0x3F,0x80,0xC0,0xE0,0xB0,0x98,0x8C,0xC6,0x61,0x7F,0x7D,0x55,0x55,0x55,0x55,0x57,0xFE
+      69.  01:92C0  00 01 03 06 0C 18 31 43 7F 5F 55 55 55 55 75 3F 
+      69.  01:92D0  80 C0 E0 B0 98 8C C6 61 7F 7D 55 55 55 55 57 FE 
+      70.  01:92E0                      
+      71.  01:92E0                      uridium_23: 
+      72.  01:92E0                          defb 0x01,0x02,0x06,0x0C,0x18,0x31,0x63,0xFE,0x63,0x31,0x18,0x0C,0x06,0x02,0x01,0x00,0xFE,0x83,0xFF,0xC1,0xFF,0xC1,0xFF,0x01,0xFF,0xC1,0xFF,0xC1,0xFF,0x83,0xFE,0x00
+      72.  01:92E0  01 02 06 0C 18 31 63 FE 63 31 18 0C 06 02 01 00 
+      72.  01:92F0  FE 83 FF C1 FF C1 FF 01 FF C1 FF C1 FF 83 FE 00 
+      73.  01:9300                      
+      74.  01:9300                      uridium_24: 
+      75.  01:9300                          defb 0x00,0x07,0x1F,0x3F,0x7F,0x71,0xC4,0x8C,0x8D,0x0E,0x0D,0x0B,0x00,0x00,0x00,0x01,0x00,0xC2,0xF4,0xF8,0xF4,0xEC,0x5E,0xBE,0x3E,0x1E,0xDE,0x9C,0x3C,0x38,0x70,0xC0
+      75.  01:9300  00 07 1F 3F 7F 71 C4 8C 8D 0E 0D 0B 00 00 00 01 
+      75.  01:9310  00 C2 F4 F8 F4 EC 5E BE 3E 1E DE 9C 3C 38 70 C0 
+      76.  01:9320                      
+      77.  01:9320                      uridium_25: 
+      78.  01:9320                          defb 0x01,0x01,0x07,0x1F,0x3F,0x7F,0x7F,0xFD,0xF1,0xE1,0xE9,0xCD,0x4F,0x47,0x23,0x01,0x00,0x00,0x40,0x70,0x78,0x7C,0x7C,0x7E,0x1E,0x0E,0x2E,0x66,0x64,0x44,0x08,0x00
+      78.  01:9320  01 01 07 1F 3F 7F 7F FD F1 E1 E9 CD 4F 47 23 01 
+      78.  01:9330  00 00 40 70 78 7C 7C 7E 1E 0E 2E 66 64 44 08 00 
+      79.  01:9340                      
+      80.  01:9340                      uridium_26: 
+      81.  01:9340                          defb 0x00,0x43,0x2F,0x1F,0x2F,0x37,0x7A,0x7D,0x7C,0x78,0x7B,0x39,0x3C,0x1C,0x0E,0x03,0x00,0xE0,0xF8,0xFC,0xFE,0x8E,0x23,0x31,0xB1,0x70,0xB0,0xD0,0x00,0x00,0x00,0x80
+      81.  01:9340  00 43 2F 1F 2F 37 7A 7D 7C 78 7B 39 3C 1C 0E 03 
+      81.  01:9350  00 E0 F8 FC FE 8E 23 31 B1 70 B0 D0 00 00 00 80 
+      82.  01:9360                      
+      83.  01:9360                      uridium_27: 
+      84.  01:9360                          defb 0x00,0x01,0x07,0x0F,0x1F,0x1F,0x3F,0x3E,0xFF,0x00,0x3F,0x1F,0x1F,0x0F,0x07,0x01,0x00,0xF0,0xFC,0xE2,0x80,0x38,0x1C,0x0E,0xFF,0x00,0x1C,0x38,0x80,0xE2,0xFC,0xF0
+      84.  01:9360  00 01 07 0F 1F 1F 3F 3E FF 00 3F 1F 1F 0F 07 01 
+      84.  01:9370  00 F0 FC E2 80 38 1C 0E FF 00 1C 38 80 E2 FC F0 
+      85.  01:9380                      
+      86.  01:9380                      uridium_28: 
+      87.  01:9380                          defb 0x03,0x0E,0x1C,0x3C,0x39,0x7B,0x78,0x7C,0x7D,0x7E,0x3D,0x3B,0x17,0x2F,0x43,0x00,0x80,0x00,0x00,0x00,0xF0,0xE0,0x50,0xB1,0x31,0x23,0x8E,0xFE,0xFC,0xF8,0xE0,0x00
+      87.  01:9380  03 0E 1C 3C 39 7B 78 7C 7D 7E 3D 3B 17 2F 43 00 
+      87.  01:9390  80 00 00 00 F0 E0 50 B1 31 23 8E FE FC F8 E0 00 
+      88.  01:93A0                      
+      89.  01:93A0                      uridium_29: 
+      90.  01:93A0                          defb 0x00,0x11,0x23,0x27,0x66,0x74,0x70,0x78,0x7E,0x3F,0x3F,0x1F,0x0F,0x03,0x00,0x00,0x80,0x84,0xA2,0xB2,0xB3,0x97,0x87,0x8F,0xBF,0xBE,0xBE,0xBC,0xB8,0xA0,0x80,0x80
+      90.  01:93A0  00 11 23 27 66 74 70 78 7E 3F 3F 1F 0F 03 00 00 
+      90.  01:93B0  80 84 A2 B2 B3 97 87 8F BF BE BE BC B8 A0 80 80 
+      91.  01:93C0                      
+      92.  01:93C0                      uridium_30: 
+      93.  01:93C0                          defb 0x01,0x00,0x00,0x00,0x0F,0x07,0x0A,0x8D,0x8C,0xC4,0x71,0x7F,0x3F,0x1F,0x07,0x00,0xC0,0x70,0x38,0x3C,0x9C,0xDE,0x1E,0x3E,0xBE,0x7E,0xBC,0xDC,0xE8,0xF4,0xC2,0x00
+      93.  01:93C0  01 00 00 00 0F 07 0A 8D 8C C4 71 7F 3F 1F 07 00 
+      93.  01:93D0  C0 70 38 3C 9C DE 1E 3E BE 7E BC DC E8 F4 C2 00 
+      94.  01:93E0                      
+      95.  01:93E0                      uridium_31: 
+      96.  01:93E0                          defb 0x0F,0x3F,0x47,0x01,0x1C,0x38,0x70,0xFF,0x00,0x38,0x1C,0x01,0x47,0x3F,0x0F,0x00,0x80,0xE0,0xF0,0xF8,0xF8,0xFC,0x7C,0xFF,0x00,0xFC,0xF8,0xF8,0xF0,0xE0,0x80,0x00
+      96.  01:93E0  0F 3F 47 01 1C 38 70 FF 00 38 1C 01 47 3F 0F 00 
+      96.  01:93F0  80 E0 F0 F8 F8 FC 7C FF 00 FC F8 F8 F0 E0 80 00 
+      97.  01:9400                      
+      98.  01:9400                      uridium_32: 
+      99.  01:9400                          defb 0xFF,0xFF,0xFF,0xE0,0xEE,0xE2,0xFB,0xE2,0xEE,0xE8,0xEF,0xE0,0xFF,0xFF,0xFF,0x00,0xFE,0xFE,0xFE,0x2E,0xEE,0x2E,0xAE,0x8E,0xEE,0x2E,0xBE,0x8E,0xFE,0xFE,0xFE,0x00
+      99.  01:9400  FF FF FF E0 EE E2 FB E2 EE E8 EF E0 FF FF FF 00 
+      99.  01:9410  FE FE FE 2E EE 2E AE 8E EE 2E BE 8E FE FE FE 00 
+     100.  01:9420                      
+     101.  01:9420                      uridium_33: 
+     102.  01:9420                          defb 0xFF,0xFF,0xFF,0xE8,0xEE,0xE0,0xEF,0xE2,0xFB,0xE8,0xEA,0xE2,0xFF,0xFF,0xFF,0x00,0xFE,0xFE,0xFE,0x2E,0xEE,0x0E,0xBE,0x2E,0xAE,0x8E,0xEE,0x2E,0xFE,0xFE,0xFE,0x00
+     102.  01:9420  FF FF FF E8 EE E0 EF E2 FB E8 EA E2 FF FF FF 00 
+     102.  01:9430  FE FE FE 2E EE 0E BE 2E AE 8E EE 2E FE FE FE 00 
+     103.  01:9440                      
+     104.  01:9440                      uridium_34: 
+     105.  01:9440                          defb 0xFF,0xFF,0xFF,0xE0,0xEE,0xEA,0xFB,0xE8,0xEB,0xE2,0xFA,0xE2,0xFF,0xFF,0xFF,0x00,0xFE,0xFE,0xFE,0x8E,0xBE,0x0E,0xBE,0x0E,0xBE,0x2E,0xAE,0x8E,0xFE,0xFE,0xFE,0x00
+     105.  01:9440  FF FF FF E0 EE EA FB E8 EB E2 FA E2 FF FF FF 00 
+     105.  01:9450  FE FE FE 8E BE 0E BE 0E BE 2E AE 8E FE FE FE 00 
+     106.  01:9460                      
+     107.  01:9460                      uridium_35: 
+     108.  01:9460                          defb 0xFF,0xFF,0xFF,0xE2,0xFA,0xE0,0xEE,0xE8,0xFB,0xE0,0xEE,0xE2,0xFF,0xFF,0xFF,0x00,0xFE,0xFE,0xFE,0x8E,0xAE,0xAE,0xBE,0x0E,0xEE,0x2E,0xBE,0x8E,0xFE,0xFE,0xFE,0x00
+     108.  01:9460  FF FF FF E2 FA E0 EE E8 FB E0 EE E2 FF FF FF 00 
+     108.  01:9470  FE FE FE 8E AE AE BE 0E EE 2E BE 8E FE FE FE 00 
+     109.  01:9480                      
+     110.  01:9480                      uridium_36: 
+     111.  01:9480                          defb 0x00,0x00,0x00,0x00,0x03,0x0F,0xFF,0x00,0x2A,0xFF,0x00,0x03,0x00,0x00,0x00,0x00,0x03,0x0F,0x3F,0xFF,0xFF,0xFF,0xFF,0x00,0xAA,0xFF,0x00,0xFF,0xFF,0x3F,0x0F,0x03
+     111.  01:9480  00 00 00 00 03 0F FF 00 2A FF 00 03 00 00 00 00 
+     111.  01:9490  03 0F 3F FF FF FF FF 00 AA FF 00 FF FF 3F 0F 03 
+     112.  01:94A0                      
+     113.  01:94A0                      uridium_37: 
+     114.  01:94A0                          defb 0xC0,0xF0,0xFC,0xFF,0xFF,0xFF,0xFF,0x00,0x55,0xFF,0x00,0xFF,0xFF,0xFC,0xF0,0xC0,0x00,0x00,0x00,0x00,0xC0,0xF0,0xFF,0x00,0x54,0xFF,0x00,0xC0,0x00,0x00,0x00,0x00
+     114.  01:94A0  C0 F0 FC FF FF FF FF 00 55 FF 00 FF FF FC F0 C0 
+     114.  01:94B0  00 00 00 00 C0 F0 FF 00 54 FF 00 C0 00 00 00 00 
+     115.  01:94C0                      
+     116.  01:94C0                      uridium_38: 
+     117.  01:94C0                          defb 0x00,0x00,0x0D,0x0B,0x07,0x0F,0x1E,0xFF,0x00,0x0F,0x07,0x0B,0x0D,0x00,0x00,0x00,0x78,0xF8,0xF8,0xF8,0xF8,0x7E,0xC3,0xFD,0xFF,0x7E,0x80,0xF8,0xF8,0xF8,0x78,0x00
+     117.  01:94C0  00 00 0D 0B 07 0F 1E FF 00 0F 07 0B 0D 00 00 00 
+     117.  01:94D0  78 F8 F8 F8 F8 7E C3 FD FF 7E 80 F8 F8 F8 78 00 
+     118.  01:94E0                      
+     119.  01:94E0                      uridium_39: 
+     120.  01:94E0                          defb 0x1E,0x1F,0x1F,0x1F,0x1F,0x7E,0xC3,0xBF,0xFF,0x7E,0x01,0x1F,0x1F,0x1F,0x1E,0x00,0x00,0x00,0xB0,0xD0,0xE0,0xF0,0x78,0xFF,0x00,0xF0,0xE0,0xD0,0xB0,0x00,0x00,0x00
+     120.  01:94E0  1E 1F 1F 1F 1F 7E C3 BF FF 7E 01 1F 1F 1F 1E 00 
+     120.  01:94F0  00 00 B0 D0 E0 F0 78 FF 00 F0 E0 D0 B0 00 00 00 
+     121.  01:9500                      
+     122.  01:9500                      uridium_40: 
+     123.  01:9500                          defb 0x07,0x18,0x20,0x40,0x40,0x80,0x80,0x80,0x80,0x80,0x40,0x40,0x20,0x18,0x07,0x00,0xC0,0x30,0x08,0x04,0x04,0x02,0x02,0x02,0x02,0x02,0x04,0x04,0x08,0x30,0xC0,0x00
+     123.  01:9500  07 18 20 40 40 80 80 80 80 80 40 40 20 18 07 00 
+     123.  01:9510  C0 30 08 04 04 02 02 02 02 02 04 04 08 30 C0 00 
+     124.  01:9520                      
+     125.  01:9520                      uridium_41: 
+     126.  01:9520                          defb 0x00,0x02,0x0A,0x2A,0x2A,0x2A,0xAA,0xAA,0xAA,0xAA,0xAA,0x2A,0x2A,0x2A,0x0A,0x02,0x00,0x80,0xA0,0xA8,0xA8,0xA8,0xAA,0xAA,0xAA,0xAA,0xAA,0xA8,0xA8,0xA8,0xA0,0x80
+     126.  01:9520  00 02 0A 2A 2A 2A AA AA AA AA AA 2A 2A 2A 0A 02 
+     126.  01:9530  00 80 A0 A8 A8 A8 AA AA AA AA AA A8 A8 A8 A0 80 
+     127.  01:9540                      
+     128.  01:9540                      uridium_42: 
+     129.  01:9540                          defb 0x07,0x1F,0x3F,0x7F,0x7F,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x7F,0x7F,0x3F,0x1F,0x07,0xE0,0xF8,0xFC,0xFE,0xFE,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFE,0xFE,0xFC,0xF8,0xE0
+     129.  01:9540  07 1F 3F 7F 7F FF FF FF FF FF FF 7F 7F 3F 1F 07 
+     129.  01:9550  E0 F8 FC FE FE FF FF FF FF FF FF FE FE FC F8 E0 
+     130.  01:9560                      
+     131.  01:9560                      uridium_43: 
+     132.  01:9560                          defb 0x00,0x00,0x00,0x01,0x07,0x0F,0x0F,0x1F,0x1F,0x0F,0x0F,0x07,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x80,0xE0,0xF0,0xF0,0xF8,0xF8,0xF0,0xF0,0xE0,0x80,0x00,0x00,0x00
+     132.  01:9560  00 00 00 01 07 0F 0F 1F 1F 0F 0F 07 01 00 00 00 
+     132.  01:9570  00 00 00 80 E0 F0 F0 F8 F8 F0 F0 E0 80 00 00 00 
+     133.  01:9580                      
+     134.  01:9580                      uridium_44: 
+     135.  01:9580                          defb 0x38,0x46,0xBF,0xFF,0xFF,0x7F,0x3F,0x0F,0x07,0x07,0x03,0x03,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x80,0xC0,0xC0,0xE0,0xE0,0xF0,0xFC,0xFA,0xFD,0xFF,0xFF,0x7E,0x1C
+     135.  01:9580  38 46 BF FF FF 7F 3F 0F 07 07 03 03 01 00 00 00 
+     135.  01:9590  00 00 00 80 C0 C0 E0 E0 F0 FC FA FD FF FF 7E 1C 
+     136.  01:95A0                      
+     137.  01:95A0                      uridium_45: 
+     138.  01:95A0                          defb 0x00,0x00,0x00,0x00,0x60,0xF0,0xF8,0xF8,0xFC,0xFF,0xFE,0x7F,0x7F,0x3F,0x1F,0x07,0x00,0x00,0x00,0x00,0x06,0x0B,0x17,0x17,0x2F,0xDF,0x3F,0xFE,0xFE,0xFC,0xF8,0xE0
+     138.  01:95A0  00 00 00 00 60 F0 F8 F8 FC FF FE 7F 7F 3F 1F 07 
+     138.  01:95B0  00 00 00 00 06 0B 17 17 2F DF 3F FE FE FC F8 E0 
+     139.  01:95C0                      
+     140.  01:95C0                      uridium_46: 
+     141.  01:95C0                          defb 0x07,0x1F,0x3F,0x7F,0x7F,0xFE,0xFF,0xFC,0xF8,0xF8,0xF0,0x60,0x00,0x00,0x00,0x00,0xE0,0xF8,0xFC,0xFE,0xFE,0x3F,0xDF,0x2F,0x17,0x17,0x0B,0x06,0x00,0x00,0x00,0x00
+     141.  01:95C0  07 1F 3F 7F 7F FE FF FC F8 F8 F0 60 00 00 00 00 
+     141.  01:95D0  E0 F8 FC FE FE 3F DF 2F 17 17 0B 06 00 00 00 00 
+     142.  01:95E0                      
+     143.  01:95E0                      uridium_47: 
+     144.  01:95E0                          defb 0x00,0x00,0x00,0x01,0x03,0x03,0x07,0x07,0x0F,0x3F,0x7F,0xFF,0xFF,0xBF,0x46,0x38,0x1C,0x7E,0xFF,0xFF,0xFD,0xFA,0xFC,0xF0,0xE0,0xE0,0xC0,0xC0,0x80,0x00,0x00,0x00
+     144.  01:95E0  00 00 00 01 03 03 07 07 0F 3F 7F FF FF BF 46 38 
+     144.  01:95F0  1C 7E FF FF FD FA FC F0 E0 E0 C0 C0 80 00 00 00 
+     145.  01:9600                      
+     146.  01:9600                      uridium_48: 
+     147.  01:9600                          defb 0x1F,0xFF,0x00,0x00,0x00,0x00,0x03,0x1F,0x03,0x00,0x00,0x00,0x01,0xFF,0x1F,0x00,0xFE,0xFC,0x00,0x90,0x48,0xFE,0xFF,0xFF,0x87,0xFE,0x00,0x90,0x20,0xFC,0xFE,0x00
+     147.  01:9600  1F FF 00 00 00 00 03 1F 03 00 00 00 01 FF 1F 00 
+     147.  01:9610  FE FC 00 90 48 FE FF FF 87 FE 00 90 20 FC FE 00 
+     148.  01:9620                      
+     149.  01:9620                      uridium_49: 
+     150.  01:9620                          defb 0x00,0x1F,0xFF,0x00,0x00,0x00,0x03,0x1F,0x03,0x00,0x00,0x00,0xFF,0x1F,0x00,0x00,0x00,0xFE,0xFC,0x00,0x48,0xFE,0xFF,0xFF,0x87,0xFE,0x00,0x90,0xFC,0xFE,0x00,0x00
+     150.  01:9620  00 1F FF 00 00 00 03 1F 03 00 00 00 FF 1F 00 00 
+     150.  01:9630  00 FE FC 00 48 FE FF FF 87 FE 00 90 FC FE 00 00 
+     151.  01:9640                      
+     152.  01:9640                      uridium_50: 
+     153.  01:9640                          defb 0x00,0x00,0x00,0x1F,0xFF,0x00,0x03,0x1F,0x03,0x00,0xFF,0x1F,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xFE,0xFC,0x3E,0xFF,0xFF,0x87,0xFE,0xFC,0xFE,0x00,0x00,0x00,0x00
+     153.  01:9640  00 00 00 1F FF 00 03 1F 03 00 FF 1F 00 00 00 00 
+     153.  01:9650  00 00 00 FE FC 3E FF FF 87 FE FC FE 00 00 00 00 
+     154.  01:9660                      
+     155.  01:9660                      uridium_51: 
+     156.  01:9660                          defb 0x00,0x00,0x00,0x00,0x00,0x1F,0xFF,0x03,0xFF,0x1F,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xFE,0xFF,0xFF,0x87,0xFE,0x00,0x00,0x00,0x00,0x00,0x00
+     156.  01:9660  00 00 00 00 00 1F FF 03 FF 1F 00 00 00 00 00 00 
+     156.  01:9670  00 00 00 00 00 FE FF FF 87 FE 00 00 00 00 00 00 
+     157.  01:9680                      
+     158.  01:9680                      uridium_52: 
+     159.  01:9680                          defb 0x00,0x00,0x00,0x00,0x00,0x7F,0xFF,0xFF,0xE1,0x7F,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xF8,0xFF,0xC0,0xFF,0xF8,0x00,0x00,0x00,0x00,0x00,0x00
+     159.  01:9680  00 00 00 00 00 7F FF FF E1 7F 00 00 00 00 00 00 
+     159.  01:9690  00 00 00 00 00 F8 FF C0 FF F8 00 00 00 00 00 00 
+     160.  01:96A0                      
+     161.  01:96A0                      uridium_53: 
+     162.  01:96A0                          defb 0x00,0x00,0x00,0x7F,0x3F,0x7C,0xFF,0xFF,0xE1,0x7F,0x3F,0x7F,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xF8,0xFF,0x00,0xC0,0xF8,0xC0,0x00,0xFF,0xF8,0x00,0x00,0x00,0x00
+     162.  01:96A0  00 00 00 7F 3F 7C FF FF E1 7F 3F 7F 00 00 00 00 
+     162.  01:96B0  00 00 00 F8 FF 00 C0 F8 C0 00 FF F8 00 00 00 00 
+     163.  01:96C0                      
+     164.  01:96C0                      uridium_54: 
+     165.  01:96C0                          defb 0x00,0x7F,0x3F,0x00,0x12,0x7F,0xFF,0xFF,0xE1,0x7F,0x00,0x09,0x3F,0x7F,0x00,0x00,0x00,0xF8,0xFF,0x00,0x00,0x00,0xC0,0xF8,0xC0,0x00,0x00,0x00,0xFF,0xF8,0x00,0x00
+     165.  01:96C0  00 7F 3F 00 12 7F FF FF E1 7F 00 09 3F 7F 00 00 
+     165.  01:96D0  00 F8 FF 00 00 00 C0 F8 C0 00 00 00 FF F8 00 00 
+     166.  01:96E0                      
+     167.  01:96E0                      uridium_55: 
+     168.  01:96E0                          defb 0x7F,0x3F,0x00,0x09,0x12,0x7F,0xFF,0xFF,0xE1,0x7F,0x00,0x09,0x04,0x3F,0x7F,0x00,0xF8,0xFF,0x00,0x00,0x00,0x00,0xC0,0xF8,0xC0,0x00,0x00,0x00,0x80,0xFF,0xF8,0x00
+     168.  01:96E0  7F 3F 00 09 12 7F FF FF E1 7F 00 09 04 3F 7F 00 
+     168.  01:96F0  F8 FF 00 00 00 00 C0 F8 C0 00 00 00 80 FF F8 00 
+     169.  01:9700                      
+     170.  01:9700                      uridium_56: 
+     171.  01:9700                          defb 0x00,0x00,0x00,0x03,0x0F,0x0F,0x1F,0x1F,0x1F,0x0F,0x0E,0x03,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80,0xE0,0xE0,0xF0,0xD0,0xD0,0xA0,0x60,0x80,0x00,0x00,0x00,0x00
+     171.  01:9700  00 00 00 03 0F 0F 1F 1F 1F 0F 0E 03 00 00 00 00 
+     171.  01:9710  00 00 00 80 E0 E0 F0 D0 D0 A0 60 80 00 00 00 00 
+     172.  01:9720                      
+     173.  01:9720                      uridium_57: 
+     174.  01:9720                          defb 0x00,0x00,0x03,0x0F,0x1F,0x1F,0x3F,0x3F,0x3F,0x3F,0x1F,0x1F,0x0E,0x03,0x00,0x00,0x00,0x00,0xC0,0xF0,0xF8,0xF8,0xFC,0xF4,0xF4,0xEC,0xE8,0x98,0x70,0xC0,0x00,0x00
+     174.  01:9720  00 00 03 0F 1F 1F 3F 3F 3F 3F 1F 1F 0E 03 00 00 
+     174.  01:9730  00 00 C0 F0 F8 F8 FC F4 F4 EC E8 98 70 C0 00 00 
+     175.  01:9740                      
+     176.  01:9740                      uridium_58: 
+     177.  01:9740                          defb 0x00,0x03,0x0F,0x1F,0x3F,0x3F,0x7F,0x7F,0x7F,0x7F,0x3F,0x3F,0x1F,0x0E,0x03,0x00,0x00,0xC0,0xF0,0xF8,0xFC,0xFC,0xFE,0xFA,0xFA,0xF6,0xF4,0xEC,0x98,0x70,0xC0,0x00
+     177.  01:9740  00 03 0F 1F 3F 3F 7F 7F 7F 7F 3F 3F 1F 0E 03 00 
+     177.  01:9750  00 C0 F0 F8 FC FC FE FA FA F6 F4 EC 98 70 C0 00 
+     178.  01:9760                      
+     179.  01:9760                      uridium_59: 
+     180.  01:9760                          defb 0x07,0x1F,0x3F,0x7F,0x7F,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x7F,0x7F,0x3F,0x1E,0x07,0xE0,0xF8,0xFC,0xFE,0xFE,0xFF,0xFF,0xFD,0xFD,0xFD,0xFB,0xFA,0xF6,0xCC,0x38,0xE0
+     180.  01:9760  07 1F 3F 7F 7F FF FF FF FF FF FF 7F 7F 3F 1E 07 
+     180.  01:9770  E0 F8 FC FE FE FF FF FD FD FD FB FA F6 CC 38 E0 
+     181.  01:9780                      
+     182.  01:9780                      uridium_60: 
+     183.  01:9780                          defb 0x07,0x1F,0x3D,0x7F,0x7D,0x81,0xFF,0x00,0xFF,0x81,0x7D,0x7F,0x3D,0x1F,0x07,0x00,0xE0,0xF8,0xBC,0xFE,0xBE,0x81,0xFF,0x00,0xFF,0x81,0xBE,0xFE,0xBC,0xF8,0xE0,0x00
+     183.  01:9780  07 1F 3D 7F 7D 81 FF 00 FF 81 7D 7F 3D 1F 07 00 
+     183.  01:9790  E0 F8 BC FE BE 81 FF 00 FF 81 BE FE BC F8 E0 00 
+     184.  01:97A0                      
+     185.  01:97A0                      uridium_61: 
+     186.  01:97A0                          defb 0x07,0x1F,0x2F,0x73,0x1C,0x07,0x01,0x00,0x01,0x07,0x1C,0x73,0x2F,0x1F,0x07,0x00,0xE0,0xF8,0xBC,0xEE,0x78,0xE7,0x9D,0x73,0xCF,0x5F,0x7E,0xEE,0xBC,0xF8,0xE0,0x00
+     186.  01:97A0  07 1F 2F 73 1C 07 01 00 01 07 1C 73 2F 1F 07 00 
+     186.  01:97B0  E0 F8 BC EE 78 E7 9D 73 CF 5F 7E EE BC F8 E0 00 
+     187.  01:97C0                      
+     188.  01:97C0                      uridium_62: 
+     189.  01:97C0                          defb 0x07,0x1F,0x3B,0x0D,0x06,0x03,0x01,0x00,0x01,0x03,0x06,0x0D,0x3B,0x1F,0x07,0x00,0xE0,0xF0,0xF4,0xEE,0xDA,0xB7,0x6F,0xDF,0xEF,0x7F,0xBA,0xFE,0xEC,0xF8,0xE0,0x00
+     189.  01:97C0  07 1F 3B 0D 06 03 01 00 01 03 06 0D 3B 1F 07 00 
+     189.  01:97D0  E0 F0 F4 EE DA B7 6F DF EF 7F BA FE EC F8 E0 00 
+     190.  01:97E0                      
+     191.  01:97E0                      uridium_63: 
+     192.  01:97E0                          defb 0x0F,0x06,0x02,0x03,0x01,0x01,0x01,0x00,0x00,0x01,0x01,0x03,0x02,0x06,0x0F,0x00,0xC0,0xD8,0xDC,0xB6,0xAE,0x6F,0x5F,0xCF,0xFB,0x9F,0x76,0x7E,0xFC,0xF8,0xE0,0x00
+     192.  01:97E0  0F 06 02 03 01 01 01 00 00 01 01 03 02 06 0F 00 
+     192.  01:97F0  C0 D8 DC B6 AE 6F 5F CF FB 9F 76 7E FC F8 E0 00 
+     193.  01:9800                      
+    1030   01:9800                      scorebar:
+    1031   01:9800                          include banner4b.asm
+       1.  01:9800                      banner4b:
+       2.  01:9800                      banner4b_0: 
+       3.  01:9800                          defb 0x00,0x00,0xF1,0x90,0x90,0x9E,0x91,0xF0,0x00,0x00,0x7E,0x00,0x63,0x00,0x63,0x00,0x00,0x00,0xE0,0x20,0x60,0x20,0x20,0xC0,0x00,0x00,0x18,0x00,0x18,0x00,0x18,0x00
+       3.  01:9800  00 00 F1 90 90 9E 91 F0 00 00 7E 00 63 00 63 00 
+       3.  01:9810  00 00 E0 20 60 20 20 C0 00 00 18 00 18 00 18 00 
+       4.  01:9820                      
+       5.  01:9820                      banner4b_1: 
+       6.  01:9820                          defb 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x3C,0x00,0x06,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x66,0x00,0x66,0x00
+       6.  01:9820  00 00 00 00 00 00 00 00 00 00 00 00 3C 00 06 00 
+       6.  01:9830  00 00 00 00 00 00 00 00 00 00 00 00 66 00 66 00 
+       7.  01:9840                      
+       8.  01:9840                      banner4b_2: 
+       9.  01:9840                          defb 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x3C,0x00,0x66,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x1E,0x00,0x30,0x00
+       9.  01:9840  00 00 00 00 00 00 00 00 00 00 00 00 3C 00 66 00 
+       9.  01:9850  00 00 00 00 00 00 00 00 00 00 00 00 1E 00 30 00 
+      10.  01:9860                      
+      11.  01:9860                      banner4b_3: 
+      12.  01:9860                          defb 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x1C,0x00,0x3C,0x00,0x0C,0x00
+      12.  01:9860  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+      12.  01:9870  00 00 00 00 00 00 00 00 00 00 1C 00 3C 00 0C 00 
+      13.  01:9880                      
+      14.  01:9880                      banner4b_4: 
+      15.  01:9880                          defb 0x00,0x00,0x21,0x20,0x60,0x6E,0x70,0x20,0x7E,0x00,0x60,0x00,0x60,0x00,0x00,0x00,0x00,0x00,0xC0,0x40,0x80,0x80,0x80,0x80,0x18,0x00,0x18,0x00,0x0E,0x00,0x00,0x00
+      15.  01:9880  00 00 21 20 60 6E 70 20 7E 00 60 00 60 00 00 00 
+      15.  01:9890  00 00 C0 40 80 80 80 80 18 00 18 00 0E 00 00 00 
+      16.  01:98A0                      
+      17.  01:98A0                      banner4b_5: 
+      18.  01:98A0                          defb 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x3E,0x00,0x66,0x00,0x3E,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x66,0x00,0x3E,0x00,0x06,0x00,0x3C,0x00
+      18.  01:98A0  00 00 00 00 00 00 00 00 3E 00 66 00 3E 00 00 00 
+      18.  01:98B0  00 00 00 00 00 00 00 00 66 00 3E 00 06 00 3C 00 
+      19.  01:98C0                      
+      20.  01:98C0                      banner4b_6: 
+      21.  01:98C0                          defb 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x7C,0x00,0x60,0x00,0x3E,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x30,0x00,0x30,0x00,0x30,0x00,0x00,0x00
+      21.  01:98C0  00 00 00 00 00 00 00 00 7C 00 60 00 3E 00 00 00 
+      21.  01:98D0  00 00 00 00 00 00 00 00 30 00 30 00 30 00 00 00 
+      22.  01:98E0                      
+      23.  01:98E0                      banner4b_7: 
+      24.  01:98E0                          defb 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x0C,0x00,0x0C,0x00,0x3F,0x00,0x00,0x00
+      24.  01:98E0  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+      24.  01:98F0  00 00 00 00 00 00 00 00 0C 00 0C 00 3F 00 00 00 
+      25.  01:9900                      
+      26.  01:9900                      banner4b_8: 
+      27.  01:9900                          defb 0x00,0x00,0xF0,0x90,0x60,0x9E,0x90,0x60,0x5A,0x00,0x66,0x00,0xBD,0x00,0xFF,0x00,0x00,0x00,0x44,0xCC,0x44,0x44,0x44,0x44,0x00,0x00,0x1C,0x00,0x3C,0x00,0x0C,0x00
+      27.  01:9900  00 00 F0 90 60 9E 90 60 5A 00 66 00 BD 00 FF 00 
+      27.  01:9910  00 00 44 CC 44 44 44 44 00 00 1C 00 3C 00 0C 00 
+      28.  01:9920                      
+      29.  01:9920                      banner4b_9: 
+      30.  01:9920                          defb 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x1C,0x00,0x3C,0x00,0x0C,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x3E,0x00,0x67,0x00,0x6F,0x00
+      30.  01:9920  00 00 00 00 00 00 00 00 00 00 1C 00 3C 00 0C 00 
+      30.  01:9930  00 00 00 00 00 00 00 00 00 00 3E 00 67 00 6F 00 
+      31.  01:9940                      
+      32.  01:9940                      banner4b_10: 
+      33.  01:9940                          defb 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x3E,0x00,0x67,0x00,0x6F,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x3E,0x00,0x67,0x00,0x6F,0x00
+      33.  01:9940  00 00 00 00 00 00 00 00 00 00 3E 00 67 00 6F 00 
+      33.  01:9950  00 00 00 00 00 00 00 00 00 00 3E 00 67 00 6F 00 
+      34.  01:9960                      
+      35.  01:9960                      banner4b_11: 
+      36.  01:9960                          defb 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x3E,0x00,0x67,0x00,0x6F,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x3E,0x00,0x67,0x00,0x6F,0x00
+      36.  01:9960  00 00 00 00 00 00 00 00 00 00 3E 00 67 00 6F 00 
+      36.  01:9970  00 00 00 00 00 00 00 00 00 00 3E 00 67 00 6F 00 
+      37.  01:9980                      
+      38.  01:9980                      banner4b_12: 
+      39.  01:9980                          defb 0x00,0x00,0x27,0x69,0x21,0x22,0x24,0x2F,0xFF,0x00,0xFF,0x00,0x7E,0x00,0x00,0x00,0x00,0x00,0x04,0x0D,0x05,0xE4,0x05,0x04,0x0C,0x00,0x0C,0x00,0x3F,0x00,0x00,0x00
+      39.  01:9980  00 00 27 69 21 22 24 2F FF 00 FF 00 7E 00 00 00 
+      39.  01:9990  00 00 04 0D 05 E4 05 04 0C 00 0C 00 3F 00 00 00 
+      40.  01:99A0                      
+      41.  01:99A0                      banner4b_13: 
+      42.  01:99A0                          defb 0x00,0x00,0xE0,0x00,0xC0,0x20,0x20,0xC0,0x0C,0x00,0x0C,0x00,0x3F,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x7B,0x00,0x73,0x00,0x3E,0x00,0x00,0x00
+      42.  01:99A0  00 00 E0 00 C0 20 20 C0 0C 00 0C 00 3F 00 00 00 
+      42.  01:99B0  00 00 00 00 00 00 00 00 7B 00 73 00 3E 00 00 00 
+      43.  01:99C0                      
+      44.  01:99C0                      banner4b_14: 
+      45.  01:99C0                          defb 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x7B,0x00,0x73,0x00,0x3E,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x7B,0x00,0x73,0x00,0x3E,0x00,0x00,0x00
+      45.  01:99C0  00 00 00 00 00 00 00 00 7B 00 73 00 3E 00 00 00 
+      45.  01:99D0  00 00 00 00 00 00 00 00 7B 00 73 00 3E 00 00 00 
+      46.  01:99E0                      
+      47.  01:99E0                      banner4b_15: 
+      48.  01:99E0                          defb 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x7B,0x00,0x73,0x00,0x3E,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x7B,0x00,0x73,0x00,0x3E,0x00,0x00,0x00
+      48.  01:99E0  00 00 00 00 00 00 00 00 7B 00 73 00 3E 00 00 00 
+      48.  01:99F0  00 00 00 00 00 00 00 00 7B 00 73 00 3E 00 00 00 
+      49.  01:9A00                      
+      50.  01:9A00                      banner4b_16: 
+      51.  01:9A00                          defb 0x00,0x00,0x27,0x68,0x2E,0x29,0x29,0x26,0xF8,0xFC,0x0C,0x0C,0x0C,0x0C,0x0C,0x0E,0x00,0x00,0x04,0x0D,0x05,0xE4,0x04,0x05,0x1B,0x1B,0x1B,0x1B,0x1B,0x1B,0x1B,0x3B
+      51.  01:9A00  00 00 27 68 2E 29 29 26 F8 FC 0C 0C 0C 0C 0C 0E 
+      51.  01:9A10  00 00 04 0D 05 E4 04 05 1B 1B 1B 1B 1B 1B 1B 3B 
+      52.  01:9A20                      
+      53.  01:9A20                      banner4b_17: 
+      54.  01:9A20                          defb 0x00,0x00,0xC0,0x20,0x20,0xE0,0x20,0xC0,0xF8,0xFC,0x8E,0x06,0x0E,0x3C,0x38,0x38,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x4F,0xAF,0xA0,0x40,0x00,0xEC,0xEC,0xEE
+      54.  01:9A20  00 00 C0 20 20 E0 20 C0 F8 FC 8E 06 0E 3C 38 38 
+      54.  01:9A30  00 00 00 00 00 00 00 00 4F AF A0 40 00 EC EC EE 
+      55.  01:9A40                      
+      56.  01:9A40                      banner4b_18: 
+      57.  01:9A40                          defb 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xF1,0xFA,0x3A,0x19,0x18,0x1B,0x1B,0x3B,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x30,0xB0,0xB0,0x30,0x30,0xB0,0xB0,0xB0
+      57.  01:9A40  00 00 00 00 00 00 00 00 F1 FA 3A 19 18 1B 1B 3B 
+      57.  01:9A50  00 00 00 00 00 00 00 00 30 B0 B0 30 30 B0 B0 B0 
+      58.  01:9A60                      
+      59.  01:9A60                      banner4b_19: 
+      60.  01:9A60                          defb 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x67,0x6F,0x6F,0x6E,0x6C,0x6C,0x6C,0xEC,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x0E,0x9F,0xFF,0xF7,0x63,0x03,0x03,0x03
+      60.  01:9A60  00 00 00 00 00 00 00 00 67 6F 6F 6E 6C 6C 6C EC 
+      60.  01:9A70  00 00 00 00 00 00 00 00 0E 9F FF F7 63 03 03 03 
+      61.  01:9A80                      
+      62.  01:9A80                      banner4b_20: 
+      63.  01:9A80                          defb 0x00,0x00,0x7F,0x99,0x19,0x29,0x49,0xFF,0x0F,0x07,0x07,0x00,0x00,0xFF,0xFF,0x00,0x00,0x00,0x0F,0x12,0x02,0xE4,0x09,0x1E,0xFB,0xF3,0xF3,0x03,0x07,0xFF,0xFE,0x00
+      63.  01:9A80  00 00 7F 99 19 29 49 FF 0F 07 07 00 00 FF FF 00 
+      63.  01:9A90  00 00 0F 12 02 E4 09 1E FB F3 F3 03 07 FF FE 00 
+      64.  01:9AA0                      
+      65.  01:9AA0                      banner4b_21: 
+      66.  01:9AA0                          defb 0x00,0x00,0xE0,0x20,0x60,0x20,0x20,0xC0,0x1C,0x0E,0x0E,0x0F,0x07,0x03,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xEF,0xE7,0xE7,0xE0,0xE0,0xFF,0xFF,0x00
+      66.  01:9AA0  00 00 E0 20 60 20 20 C0 1C 0E 0E 0F 07 03 01 00 
+      66.  01:9AB0  00 00 00 00 00 00 00 00 EF E7 E7 E0 E0 FF FF 00 
+      67.  01:9AC0                      
+      68.  01:9AC0                      banner4b_22: 
+      69.  01:9AC0                          defb 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xFB,0xF3,0xF3,0x03,0x07,0xFF,0xFE,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xBF,0x9F,0x9F,0x80,0x80,0x0F,0x0F,0x00
+      69.  01:9AC0  00 00 00 00 00 00 00 00 FB F3 F3 03 07 FF FE 00 
+      69.  01:9AD0  00 00 00 00 00 00 00 00 BF 9F 9F 80 80 0F 0F 00 
+      70.  01:9AE0                      
+      71.  01:9AE0                      banner4b_23: 
+      72.  01:9AE0                          defb 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xEC,0xCC,0xCC,0x0C,0x1C,0xFC,0xF8,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x00
+      72.  01:9AE0  00 00 00 00 00 00 00 00 EC CC CC 0C 1C FC F8 00 
+      72.  01:9AF0  00 00 00 00 00 00 00 00 03 03 03 03 03 03 03 00 
+      73.  01:9B00                      
+      74.  01:9B00                      banner4b_24: 
+      75.  01:9B00                          defb 0x00,0x00,0x30,0x00,0x30,0x00,0x30,0x00,0x30,0x00,0x30,0x00,0x3E,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x3C,0x00,0x06,0x00,0x3E,0x00,0x66,0x00,0x3E,0x00,0x00,0x00
+      75.  01:9B00  00 00 30 00 30 00 30 00 30 00 30 00 3E 00 00 00 
+      75.  01:9B10  00 00 00 00 3C 00 06 00 3E 00 66 00 3E 00 00 00 
+      76.  01:9B20                      
+      77.  01:9B20                      banner4b_25: 
+      78.  01:9B20                          defb 0x00,0x00,0x00,0x00,0x7E,0x00,0x66,0x00,0x66,0x00,0x66,0x00,0x66,0x00,0x00,0x00,0x00,0x00,0x06,0x00,0x06,0x00,0x3E,0x00,0x66,0x00,0x66,0x00,0x3E,0x00,0x00,0x00
+      78.  01:9B20  00 00 00 00 7E 00 66 00 66 00 66 00 66 00 00 00 
+      78.  01:9B30  00 00 06 00 06 00 3E 00 66 00 66 00 3E 00 00 00 
+      79.  01:9B40                      
+      80.  01:9B40                      banner4b_26: 
+      81.  01:9B40                          defb 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x7E,0x00,0x66,0x00,0x66,0x00,0x66,0x00,0x66,0x00,0x00,0x00
+      81.  01:9B40  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+      81.  01:9B50  00 00 00 00 7E 00 66 00 66 00 66 00 66 00 00 00 
+      82.  01:9B60                      
+      83.  01:9B60                      banner4b_27: 
+      84.  01:9B60                          defb 0x00,0x00,0x00,0x00,0x3C,0x00,0x66,0x00,0x66,0x00,0x66,0x00,0x3C,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x66,0x00,0x66,0x00,0x66,0x00,0x7E,0x00,0x66,0x00,0x00,0x00
+      84.  01:9B60  00 00 00 00 3C 00 66 00 66 00 66 00 3C 00 00 00 
+      84.  01:9B70  00 00 00 00 66 00 66 00 66 00 7E 00 66 00 00 00 
+      85.  01:9B80                      
+      86.  01:9B80                      banner4b_28: 
+      87.  01:9B80                          defb 0x00,0x00,0x3E,0x00,0x67,0x00,0x6F,0x00,0x7B,0x00,0x73,0x00,0x3E,0x00,0x00,0x00,0x00,0x00,0x1C,0x00,0x3C,0x00,0x0C,0x00,0x0C,0x00,0x0C,0x00,0x3F,0x00,0x00,0x00
+      87.  01:9B80  00 00 3E 00 67 00 6F 00 7B 00 73 00 3E 00 00 00 
+      87.  01:9B90  00 00 1C 00 3C 00 0C 00 0C 00 0C 00 3F 00 00 00 
+      88.  01:9BA0                      
+      89.  01:9BA0                      banner4b_29: 
+      90.  01:9BA0                          defb 0x00,0x00,0x3E,0x00,0x63,0x00,0x03,0x00,0x1E,0x00,0x60,0x00,0x7F,0x00,0x00,0x00,0x00,0x00,0x3E,0x00,0x63,0x00,0x03,0x00,0x0E,0x00,0x63,0x00,0x3E,0x00,0x00,0x00
+      90.  01:9BA0  00 00 3E 00 63 00 03 00 1E 00 60 00 7F 00 00 00 
+      90.  01:9BB0  00 00 3E 00 63 00 03 00 0E 00 63 00 3E 00 00 00 
+      91.  01:9BC0                      
+      92.  01:9BC0                      banner4b_30: 
+      93.  01:9BC0                          defb 0x00,0x00,0x1C,0x00,0x3C,0x00,0x6C,0x00,0xFF,0x00,0x0C,0x00,0x3F,0x00,0x00,0x00,0x00,0x00,0x7F,0x00,0x60,0x00,0x7E,0x00,0x03,0x00,0x63,0x00,0x3E,0x00,0x00,0x00
+      93.  01:9BC0  00 00 1C 00 3C 00 6C 00 FF 00 0C 00 3F 00 00 00 
+      93.  01:9BD0  00 00 7F 00 60 00 7E 00 03 00 63 00 3E 00 00 00 
+      94.  01:9BE0                      
+      95.  01:9BE0                      banner4b_31: 
+      96.  01:9BE0                          defb 0x00,0x00,0x3E,0x00,0x60,0x00,0x7E,0x00,0x63,0x00,0x63,0x00,0x3E,0x00,0x00,0x00,0x00,0x00,0x7F,0x00,0x63,0x00,0x06,0x00,0x06,0x00,0x0C,0x00,0x0C,0x00,0x00,0x00
+      96.  01:9BE0  00 00 3E 00 60 00 7E 00 63 00 63 00 3E 00 00 00 
+      96.  01:9BF0  00 00 7F 00 63 00 06 00 06 00 0C 00 0C 00 00 00 
+      97.  01:9C00                      
+      98.  01:9C00                      banner4b_32: 
+      99.  01:9C00                          defb 0x00,0x00,0x3E,0x00,0x63,0x00,0x63,0x00,0x3E,0x00,0x63,0x00,0x3E,0x00,0x00,0x00,0x00,0x00,0x3E,0x00,0x63,0x00,0x63,0x00,0x3F,0x00,0x03,0x00,0x3E,0x00,0x00,0x00
+      99.  01:9C00  00 00 3E 00 63 00 63 00 3E 00 63 00 3E 00 00 00 
+      99.  01:9C10  00 00 3E 00 63 00 63 00 3F 00 03 00 3E 00 00 00 
+     100.  01:9C20                      
+     101.  01:9C20                      banner4b_33: 
+     102.  01:9C20                          defb 0x00,0x00,0x00,0x00,0x3C,0x00,0x06,0x00,0x3E,0x00,0x66,0x00,0x3E,0x00,0x00,0x00,0x00,0x00,0x60,0x00,0x60,0x00,0x7C,0x00,0x66,0x00,0x66,0x00,0x7C,0x00,0x00,0x00
+     102.  01:9C20  00 00 00 00 3C 00 06 00 3E 00 66 00 3E 00 00 00 
+     102.  01:9C30  00 00 60 00 60 00 7C 00 66 00 66 00 7C 00 00 00 
+     103.  01:9C40                      
+    1032   01:9C40                      
+    1033   01:9C40                      ; *** RAM ***
+    1034   01:9C40                      
+    1035   01:9C40                          code @ 0C000h
+    1036   01:C000                      
+    1037   01:C000  00 (6144)           level_buffer:	ds	6*1024
+    1038   01:D800                      
+    1039   01:D800  00 (1)              slotvar         ds  1
+    1040   01:D801                      
+    1041   01:D801  00 (10)             score_string    ds  10
+    1042   01:D80B                      
+    1043   01:D80B  00 (1)              dxmap           ds  1
+    1044   01:D80C  00 (2)              xmap            ds  2
+    1045   01:D80E  00 (1)              dymap           ds  1
+    1046   01:D80F  00 (2)              ymap            ds  2
+    1047   01:D811                      
+    1048   01:D811                      
+    1049   01:D811  00 (1)              yship           ds  1
+    1050   01:D812  00 (2)              xship           ds  2
+    1051   01:D814  00 (1)              aniframe        ds  1
+    1052   01:D815  00 (1)              anispeed        ds  1
+    1053   01:D816                      
+    1054   01:D816  00 (1)              visible_sprts   ds  1
+    1055   01:D817  00 (1)              reverse_sat     ds  1
+    1056   01:D818                      
+    1057   01:D818  00 (128)            ram_sat         ds 128
+    1058   01:D898                      
+    1059   01:D898                          struct enemy_data
+    1060   01:D898                    < y       		db  0
+    1061   01:D898                    < x       		dw  0
+    1062   01:D898                    < status  		db  0
+    1063   01:D898                    < kind    		db  0
+    1064   01:D898                    <     ends
+    1065   01:D898                      
+    1066   01:D898                      enemies:
+    1067   01:D898                      
+    1068   01:D898                      [max_enem] enemy_data
+    1068   01:D898  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+    1068   01:D8A8  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+    1068   01:D8B8  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+    1068   01:D8C8  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+    1068   01:D8D8  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+    1068   01:D8E8  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+    1068   01:D8F8  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+    1068   01:D908  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+    1068   01:D918  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+    1068   01:D928  00 
+    1069   01:D929                      
+    1070   01:D929                          end
+
+    LABELS
+-------------------------------------------------
+00:00000066 X page1
+00:0000006C   page0
+00:0000E000   mom_map_bits_rom
+00:0000E148   mom_offset_table
+00:000000A2 X mom_depack_rom
+00:000000B8   mom_init_bits_rom
+00:000000C1   mom_node_rom
+00:000000D4   mom_set_bit_rom
+00:000000E1   mom_wait_step_rom
+00:000000E9   mom_lit_copy_rom
+00:000000EB   mom_main_loop_rom
+00:000000F2   mom_get_index_rom
+00:0000010D   mom_out_range_rom
+00:00000110   mom_go_for_it_rom
+00:00000127   mom_get_pair_rom
+00:00000139   mom_get_bits_rom
+00:0000013C   mom_getting_bits_rom
+00:00000148   mom_get_bit_rom
+00:00000150   mom_byte_done_rom
+00:00000153   _plot_pnt
+00:00000196 X _plot_pnt.slow_loop
+00:00000241   _plot_pnt.fast_loop
+00:000002EC   disp_page1
+00:000002FD   disp_page0
+00:0000030E   _sat_update
+00:00000319 X _directsat
+00:0000033C   _reverse_sat
+00:00000367 X long2ascii
+00:000003D8   NUM1
+00:000003EC   levelinit
+01:000000A9   i8255portb
+01:000000AA   i8255portc
+01:00004010   checkkbd
+01:00000040   LvlWidth
+01:00000040   LvlHigh
+01:00000008   maxspeed
+01:0000001D   max_enem
+01:0000F3DF   _vdpReg
+01:0000F3AE X LINL40
+01:0000401B   _scr
+01:00004039   vraminit
+01:000040B0   write_256
+01:00000024   ENASLT
+01:00000138   RSLREG
+01:0000FCC1   EXPTBL
+01:000040DC   rominit
+01:000040DC X search_slotset
+01:000040E3   search_slot
+01:00004104   setrompage0
+01:00004109 X recbios
+01:0000410C   setslotpage0
+01:00004142   initmain
+01:0000418F   main_loop
+01:0000420B   testy
+01:00004220   xendmapr
+01:0000422D   xendmapl
+01:0000423A   yendmapd
+01:00004247   yendmapl
+01:00004254   scorebar_sat
+01:000000F0 S counter
+01:00005000   meta_pnt_table
+01:00006000   meta_pnt
+01:00007000   chr_tileset0
+01:00007800   chr_tileset1
+01:00008000   clr_tileset0
+01:00008800   clr_tileset1
+01:00009000   test_spt
+01:00009000 X uridium
+01:00009000 X uridium_0
+01:00009020 X uridium_1
+01:00009040 X uridium_2
+01:00009060 X uridium_3
+01:00009080 X uridium_4
+01:000090A0 X uridium_5
+01:000090C0 X uridium_6
+01:000090E0 X uridium_7
+01:00009100 X uridium_8
+01:00009120 X uridium_9
+01:00009140 X uridium_10
+01:00009160 X uridium_11
+01:00009180 X uridium_12
+01:000091A0 X uridium_13
+01:000091C0 X uridium_14
+01:000091E0 X uridium_15
+01:00009200 X uridium_16
+01:00009220 X uridium_17
+01:00009240 X uridium_18
+01:00009260 X uridium_19
+01:00009280 X uridium_20
+01:000092A0 X uridium_21
+01:000092C0 X uridium_22
+01:000092E0 X uridium_23
+01:00009300 X uridium_24
+01:00009320 X uridium_25
+01:00009340 X uridium_26
+01:00009360 X uridium_27
+01:00009380 X uridium_28
+01:000093A0 X uridium_29
+01:000093C0 X uridium_30
+01:000093E0 X uridium_31
+01:00009400 X uridium_32
+01:00009420 X uridium_33
+01:00009440 X uridium_34
+01:00009460 X uridium_35
+01:00009480 X uridium_36
+01:000094A0 X uridium_37
+01:000094C0 X uridium_38
+01:000094E0 X uridium_39
+01:00009500 X uridium_40
+01:00009520 X uridium_41
+01:00009540 X uridium_42
+01:00009560 X uridium_43
+01:00009580 X uridium_44
+01:000095A0 X uridium_45
+01:000095C0 X uridium_46
+01:000095E0 X uridium_47
+01:00009600 X uridium_48
+01:00009620 X uridium_49
+01:00009640 X uridium_50
+01:00009660 X uridium_51
+01:00009680 X uridium_52
+01:000096A0 X uridium_53
+01:000096C0 X uridium_54
+01:000096E0 X uridium_55
+01:00009700 X uridium_56
+01:00009720 X uridium_57
+01:00009740 X uridium_58
+01:00009760 X uridium_59
+01:00009780 X uridium_60
+01:000097A0 X uridium_61
+01:000097C0 X uridium_62
+01:000097E0 X uridium_63
+01:00009800   scorebar
+01:00009800 X banner4b
+01:00009800 X banner4b_0
+01:00009820 X banner4b_1
+01:00009840 X banner4b_2
+01:00009860 X banner4b_3
+01:00009880 X banner4b_4
+01:000098A0 X banner4b_5
+01:000098C0 X banner4b_6
+01:000098E0 X banner4b_7
+01:00009900 X banner4b_8
+01:00009920 X banner4b_9
+01:00009940 X banner4b_10
+01:00009960 X banner4b_11
+01:00009980 X banner4b_12
+01:000099A0 X banner4b_13
+01:000099C0 X banner4b_14
+01:000099E0 X banner4b_15
+01:00009A00 X banner4b_16
+01:00009A20 X banner4b_17
+01:00009A40 X banner4b_18
+01:00009A60 X banner4b_19
+01:00009A80 X banner4b_20
+01:00009AA0 X banner4b_21
+01:00009AC0 X banner4b_22
+01:00009AE0 X banner4b_23
+01:00009B00 X banner4b_24
+01:00009B20 X banner4b_25
+01:00009B40 X banner4b_26
+01:00009B60 X banner4b_27
+01:00009B80 X banner4b_28
+01:00009BA0 X banner4b_29
+01:00009BC0 X banner4b_30
+01:00009BE0 X banner4b_31
+01:00009C00 X banner4b_32
+01:00009C20 X banner4b_33
+01:0000C000   level_buffer
+01:0000D800   slotvar
+01:0000D801 X score_string
+01:0000D80B   dxmap
+01:0000D80C   xmap
+01:0000D80E   dymap
+01:0000D80F   ymap
+01:0000D811 X yship
+01:0000D812 X xship
+01:0000D814   aniframe
+01:0000D815   anispeed
+01:0000D816   visible_sprts
+01:0000D817   reverse_sat
+01:0000D818   ram_sat
+00:00000000 X enemy_data.y
+00:00000001 X enemy_data.x
+00:00000003 X enemy_data.status
+00:00000004 X enemy_data.kind
+00:00000005 X enemy_data
+01:0000D898 X enemies
+
+
+ Output: src\main48.out
+-------------------------------------------------
+
+ Page: 00
+  Org: 00004000  Size: *  Used: 00000000
+
+    No output
+
+ Output: Scrll8way.rom
+-------------------------------------------------
+
+ Page: 00
+  Org: 00000000  Size: 00004000  Used: 00000405
+
+   Address   Length Align   Label
+   00000000      56       <empty>
+   00000038     973     @   page1
+   00000405   15355       <empty>
+
+ Page: 01
+  Org: 00004000  Size: 00008000  Used: 00005C40
+
+   Address   Length Align   Label
+   00004000     712     @   checkkbd
+   000042C8   11576         meta_pnt_table
+   00007000    8192         chr_tileset0
+   00009000    3136         test_spt
+   00009C40    9152       <empty>
