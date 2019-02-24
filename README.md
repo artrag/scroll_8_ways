@@ -5,4 +5,4 @@ Two demos using a special video arrangement able to offer two page of 256x128 (2
 In the 48K  rom all tiles are pre loaded in the two pages in VRAM, only the PNT varies
 In the 128K rom, the two pages are used to implement double buffering, so at each step the tile set is updated in the hidden page, while the other page is shown.
 
-Demo Graphic for level is courtesy of Santi from his Xracing
+Graphics for the demo levels is courtesy of Santi from his Xracing
