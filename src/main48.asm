@@ -64,11 +64,27 @@
 	push   iy  
 	push   ix
 
-    _setVdp 5,0x37  ;   SAT at 0x1b80
-    _setVdp 6,0x03  ;   SPT at 0x1800   (used from 0x1C00 to 0x1FF  only 32 sprites 16x16)
-    ; _setVdp 7,0x0E
+    _setVdp 0,0x00  ; 	screen 1   
+	
+    _setVdp 4,0x03  ; 	PGT at 1800h (used from 0x1C00 to 0x1FFF, only 128 characters)
+    _setVdp 3,0x6F  ; 	PCT at 1BC0h (used from 0x1BD0 to 0x1BDF, only 16 bytes)
+	
+    _setVdp 5,0x37  ;   SAT at 1B80
+    _setVdp 6,0x03  ;   SPT at 1800   (used from 0x1C00 to 0x1FFF  only 32 sprites 16x16)
+    
+	in  a,(0x99)	; s0 reset
 
-    call _sat_update
+;	call _sat_update
+	_setvdpwvram 0x1900
+    call    _plot_pnt
+	
+
+1:  in  a,(0x99)	; wait raster line
+    and %01011111
+    cp  %01000100	; plane 4 =0x44
+    jp  nz,1b
+
+	_setVdp 0,0x02  ;	screen 2
 
     ld  a,(xmap)	; lower bits
 	ld  b,a
@@ -77,26 +93,13 @@
     and 2
     jp  z,page0
 page1:
-
     call    disp_page1
     jp  1f
-
 page0:
     call    disp_page0
-
-1:   _setvdpwvram 0x1900
-    call    _plot_pnt
-	
-
-1:  in  a,(0x99)
-    and 0x5f
-    cp  0x5C        ; plane 28 =0x1C
-    jp  nz,1b
-
+1:   
     _setVdp 5,0x36  ;   SAT at 0x1b00
     _setVdp 6,0x07  ;   SPT at 0x3800   (64 sprites 16x16)
-	
-    ; _setVdp 7,0x00
 
     pop    ix
     pop    iy
@@ -591,14 +594,6 @@ _scr:
     ld  a,e
     call 0x005f
 
-    setvdpwvram 0x1800
-
-    halt
-    xor a               ;   clear top panel
-    ld  b,a
-	dec a
-1:  out (0x98),a
-    djnz    1b
     ret
 
 
@@ -622,7 +617,26 @@ vraminit:
     ld  hl,scorebar 		;0x1BBF	; dummy tile set from basic rom
     call    write_256
 
+
+    _setvdpwvram 0x1800
+    xor a               ;   clear top panel
+	ld	b,a
+1:	or	128
+	out (0x98),a
+	inc a
+	inc	b
+    jr	nz,1b
 	
+	_setvdpwvram 0x1BD0
+	ld	b,16
+1:	ld	a,b
+[2]	inc	a
+[4]	add	a,a
+	or b
+	out (0x98),a
+	dec	b
+    jr	nz,1b
+			
 ; set pat
 
     _setvdpwvram 0x0800
@@ -803,35 +817,37 @@ initmain:
     ld  hl,0
     ld  (xmap),hl
     ld  (ymap),hl
-    ld  a,1
+    ld  a,0
     ld  (dxmap),a
     ld  (dymap),a
 
 
-    ld  a,3*4
-    ld  (visible_sprts),a
-
-    ld  a,0
-    ld  (aniframe),a
-    ld  (anispeed),a
-
 	call	setrompage0		; 48K of rom are active - bios is excluded
     
 	call    vraminit
-	
-	ld	a,1
+
 	call	levelinit
 
-    ld  hl,ram_sat
-    ld  de,ram_sat+1
-    ld  bc,127
-    ld  (hl),-1
+    ld  hl,test_sat
+    ld  de,ram_sat
+    ld  bc,128
     ldir
 
-    xor a
+    ld  a,32*4
+    ld  (visible_sprts),a
+
+    xor	a
     ld  (reverse_sat),a
-	
+
+    ld  b,32*4
+    ld  c,0x98
+    ld  hl,ram_sat
+    _setvdpwvram 0x1b00
+1:  outi
+    jp  nz,1b
+
 	ei
+
 	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -967,38 +983,30 @@ yendmapl:
 
     ; place the score bar
 scorebar_sat:
-counter:=32*4
-    repeat  6
     repeat  4
-    db  @@# * 8 -8-1
-    if  (!((@@#/4) & 1))
-        if  ((counter!=4*8+32*4) & (counter!=4*12+32*4))
-            db  (@# * 16)+192
-        else
-            db  0
-        endif
-    else
-        db  96+(@# * 16)
-    endif
-    db  0+counter
-    db  14+8-counter/16
-counter:=counter+4
-    endrepeat
+    db  48
+    db  @# * 16
+    db  32*4
+    db  0
     endrepeat
 
+    db  48+14
+    db  4*16
+    db  32*4
+    db  0
+
+	db	0xD0
+test_sat
+    repeat  8
     repeat  4
-    db  3*16
-    db  96+(@# * 16)
-    db  counter
+    db  64+16*(@@#)
+    db  64 + @# * 32
+    db  32*4
     db  15
-counter:=counter+4
+    endrepeat
     endrepeat
 
-    db  64-2
-    db  0
-    db  0x98
-    db  0
-
+	
 
 ; *** PNT data in rom ***
 
@@ -1028,43 +1036,26 @@ clr_tileset1:
 test_spt:
     include uridium.asm
 scorebar:
-    include banner4b.asm
+	incbin tileset.bin
 
 ; *** RAM ***
 
-    code @ 0C000h
+    map  0C000h
 
-level_buffer:	ds	6*1024
+level_buffer:	#6*1024
 
-slotvar         ds  1
+slotvar         #1
 
-score_string    ds  10
-
-dxmap           ds  1
-xmap            ds  2
-dymap           ds  1
-ymap            ds  2
+dxmap           #1
+xmap            #2
+dymap           #1
+ymap            #2
 
 
-yship           ds  1
-xship           ds  2
-aniframe        ds  1
-anispeed        ds  1
+visible_sprts   #1
+reverse_sat     #1
 
-visible_sprts   ds  1
-reverse_sat     ds  1
+ram_sat         #128
 
-ram_sat         ds 128
 
-    struct enemy_data
-y       		db  0
-x       		dw  0
-status  		db  0
-kind    		db  0
-    ends
-
-enemies:
-
-[max_enem] enemy_data
-
-    end
+    endmap
