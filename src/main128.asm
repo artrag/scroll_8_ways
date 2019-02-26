@@ -313,19 +313,58 @@ cls:
 	jr	nz,1b
 	ret
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Initialise the tiles common to all banks
 ;
-;	load tile sets
+vraminit:
+	ld	a,:patterns11_13_15_17
+	ld (_bank4),a
+	ld	hl,patterns_base
+	ld	a,CommonTiles
+	ld	de,0x0800 
+	call write_2k
+
+	ld	hl,patterns_base
+	ld	a,CommonTiles
+	ld	de,0x1000 
+	call write_2k
+
+	ld	hl,patterns_base
+	ld	a,CommonTiles
+	ld	de,0x2800 
+	call write_2k
+
+	ld	hl,patterns_base
+	ld	a,CommonTiles
+	ld	de,0x3000 
+	call write_2k
+
+	ld	a,4+:patterns11_13_15_17			; colorbank = tilebank+4
+	ld (_bank4),a
+	ld	hl,patterns_base
+	ld	a,CommonTiles
+	ld	de,0x2000 
+	call write_2k
+	ld	hl,patterns_base
+	ld	a,CommonTiles
+	ld	de,0x0000 
+	call write_2k
+	ret
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;	load tile sets: only differences are loaded
+;	Note: rom space could be optimised storing common tiles only once in a separate bank  
+
 setvramp1:
 	call getbank	;->a 
 	ld (_bank4),a
 	call getaddr	;->hl
 	call getsize	;->a
-	ld	de,0x0800
+	ld	de,0x0800 + 8*CommonTiles
 	call write_2k
 	
 	call getaddr	;->hl
 	call getsize	;->a
-	ld	de,0x1000
+	ld	de,0x1000 + 8*CommonTiles
 	call write_2k
 
 	call getbank	;->a 
@@ -333,7 +372,7 @@ setvramp1:
 	ld (_bank4),a
 	call getaddr	;->hl
 	call getsize	;->a
-	ld	de,0x2000
+	ld	de,0x2000 + 8*CommonTiles
 	call write_2k
 	ret
 	
@@ -342,12 +381,12 @@ setvramp0:
 	ld (_bank4),a
 	call getaddr	;->hl
 	call getsize	;->a
-	ld	de,0x2800
+	ld	de,0x2800 + 8*CommonTiles
 	call write_2k
 	
 	call getaddr	;->hl
 	call getsize	;->a
-	ld	de,0x3000
+	ld	de,0x3000 + 8*CommonTiles
 	call write_2k
 
 	call getbank	;->a 
@@ -355,7 +394,7 @@ setvramp0:
 	ld (_bank4),a
 	call getaddr	;->hl
 	call getsize	;->a
-	ld	de,0x0000
+	ld	de,0x0000 + 8*CommonTiles
 	call write_2k
 	ret
 	
@@ -373,6 +412,8 @@ getaddr:
 	add	hl,de
 	ld	h,(hl)
 	ld	l,0
+	ld	de,8*CommonTiles
+	add	hl,de
 	ret
 getsize:
 	push	hl
@@ -392,10 +433,10 @@ tilebank:
 	db	:patterns51_53_55_57,:patterns51_53_55_57,:patterns51_53_55_57,:patterns51_53_55_57
 	db	:patterns71_73_75_77,:patterns71_73_75_77,:patterns71_73_75_77,:patterns71_73_75_77
 tilesize:	
-	db	TileSize11,TileSize13,TileSize15,TileSize17
-	db	TileSize31,TileSize33,TileSize35,TileSize37
-	db	TileSize51,TileSize53,TileSize55,TileSize57
-	db	TileSize71,TileSize73,TileSize75,TileSize77
+	db	TileSize11-CommonTiles,TileSize13-CommonTiles,TileSize15-CommonTiles,TileSize17-CommonTiles
+	db	TileSize31-CommonTiles,TileSize33-CommonTiles,TileSize35-CommonTiles,TileSize37-CommonTiles
+	db	TileSize51-CommonTiles,TileSize53-CommonTiles,TileSize55-CommonTiles,TileSize57-CommonTiles
+	db	TileSize71-CommonTiles,TileSize73-CommonTiles,TileSize75-CommonTiles,TileSize77-CommonTiles
 tileaddress:	
 	db	(patterns_base+0*2*1024)/256,(patterns_base+1*2*1024)/256,(patterns_base+2*2*1024)/256,(patterns_base+3*2*1024)/256
 	db	(patterns_base+0*2*1024)/256,(patterns_base+1*2*1024)/256,(patterns_base+2*2*1024)/256,(patterns_base+3*2*1024)/256
@@ -603,6 +644,7 @@ initmain:
 	ld	(dxmap),a
 	ld	(dymap),a
 
+	call	vraminit		; load common tiles
 
 mainloop:	
 	
@@ -661,18 +703,18 @@ dxdycontrol:
     ld  (dymap),a
 1:
 	ret
-stopxrigth:	
-stopxleft:	
+	
+stopx:	
 	xor	a
 	ld  (dxmap),a
 	ld	hl,0
 	ret	
-stopydown:
-stopytop:	
+stopy:
 	xor	a
 	ld  (dymap),a
 	ld	hl,0
 	ret	
+	
 sub_main:
     ; x speed control
     ld  e,8
@@ -688,11 +730,11 @@ sub_main:
 [4]	add	hl,hl	
 	and a
     adc hl,de
-	call	m,stopxleft
+	call	m,stopx
 	ld	de,(LvlWidth-32)*256-64
 	and a	
 	sbc	hl,de
-	call	p,stopxrigth
+	call	p,stopx
 	add	hl,de
     ld  (xmap),hl
 
@@ -705,11 +747,11 @@ sub_main:
 [4]	add	hl,hl
 	and	a
     adc hl,de
-	call	m,stopytop
+	call	m,stopy
 	ld	de,(LvlHeigh-16)*256-64
 	and a	
 	sbc	hl,de
-	call	p,stopydown
+	call	p,stopy
 	add	hl,de
     ld  (ymap),hl
 
