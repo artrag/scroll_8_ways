@@ -6,6 +6,7 @@ In the 48Kb rom all tiles are pre loaded in the two pages in VRAM, only the PNT 
 In the 128Kb rom, the two pages are used to implement double buffering, so at each step the tile set is updated in the hidden page, while the other page is shown.
 
 Graphics for the demo levels is courtesy of Santi from his XRacing 
+( https://github.com/santiontanon/xracing )
 
 Some technical details:
 Color table is reduced to 2KB. 
