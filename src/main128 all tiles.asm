@@ -3,20 +3,20 @@
 	incdir data_bin/
 
 	include parameters.asm
-
+	
 	output Scrll8way128.rom
 
 	defpage	0,0x4000, 0x2000		; page 0 contains main code + far call routines
-	defpage 1,0x6000, 0x2000		; static code
+	defpage 1,0x6000, 0x2000		; static code 
 	defpage	2,0x8000, 0x2000		; static code
-
-	defpage	3,0xA000, 0x2000		;
-	defpage	4,0xA000, 0x2000		;
+	
+	defpage	3,0xA000, 0x2000		; 
+	defpage	4,0xA000, 0x2000		; 
 	defpage	5,0xA000, 0x2000		; sprites
-
+	
 	defpage	6,0xA000, 0x2000		; meta map
-	defpage	7,0xA000, 0x2000		; metavec
-
+	defpage	7,0xA000, 0x2000		; metavec 
+	
 	defpage	 8,0xA000, 0x2000		; patterns_base
 	defpage	 9,0xA000, 0x2000		; patterns_base
 	defpage	10,0xA000, 0x2000		; patterns_base
@@ -26,32 +26,7 @@
 	defpage	14,0xA000, 0x2000		; colors_base
 	defpage	15,0xA000, 0x2000		; colors_base
 
-
-
-; *** tile set data in rom ***
-	page 4
-common_pattern:
-	incbin testpat.bin,0,CommonTiles*8
-common_color:
-	incbin testcol.bin,0,CommonTiles*8
-
-	page 5
-test_spt:
-	incbin spt.bin
-;	place 32 sprites
-test_sat:
-counter:=0
-	repeat	8
-	repeat	4
-	db	@@# * 24
-	db	48+@# * 32+@@#*8
-	db	6*4+(counter and %00001100)
-	db	15
-counter:=counter+4
-	endrepeat
-	endrepeat
-
-	page 6
+	page 6	
 metamap:
 	incbin metamap.bin
 
@@ -60,32 +35,32 @@ metavec:
 	incbin metavec.bin
 
 	page 8
-patterns_base:
+patterns_base:	
 patterns11_13_15_17:
-	incbin testpat.bin,00*2*1024+CommonTiles*8,4*2*1024-CommonTiles*8
+	incbin testpat.bin,00*2*1024,4*2*1024	
 	page 9
 patterns31_33_35_37:
-	incbin testpat.bin,04*2*1024+CommonTiles*8,8*1024-CommonTiles*8
+	incbin testpat.bin,04*2*1024,8*1024	
 	page 10
 patterns51_53_55_57:
-	incbin testpat.bin,08*2*1024+CommonTiles*8,8*1024-CommonTiles*8
+	incbin testpat.bin,08*2*1024,8*1024	
 	page 11
 patterns71_73_75_77:
-	incbin testpat.bin,12*2*1024+CommonTiles*8,8*1024-CommonTiles*8
-
+	incbin testpat.bin,12*2*1024,8*1024	
+	
 	page 12
 colors_base:
 colors11_13_15_17:
-	incbin testcol.bin,00*2*1024+CommonTiles*8,4*2*1024-CommonTiles*8
+	incbin testcol.bin,00*2*1024,4*2*1024	
 	page 13
 colors31_33_35_37:
-	incbin testcol.bin,04*2*1024+CommonTiles*8,8*1024-CommonTiles*8
+	incbin testcol.bin,04*2*1024,8*1024	
 	page 14
 colors51_53_55_57:
-	incbin testcol.bin,08*2*1024+CommonTiles*8,8*1024-CommonTiles*8
+	incbin testcol.bin,08*2*1024,8*1024	
 	page 15
 colors71_73_75_77:
-	incbin testcol.bin,12*2*1024+CommonTiles*8,8*1024-CommonTiles*8
+	incbin testcol.bin,12*2*1024,8*1024	
 
 
 
@@ -99,9 +74,9 @@ colors71_73_75_77:
 	out	(0x99),a
 	ei
 	endmacro
-
-	macro setvdpwvram value
-	di
+  
+  	macro setvdpwvram value
+  	di			
 	if (value & 0xFF)
 		ld	a,value & 0xFF
 	else
@@ -144,13 +119,13 @@ _PGT:			equ	0x2000
 
 ; -----------------------------
 ; parameters
-;
+; 
 ;	LvlWidth:	equ	373
-;	nphase:		equ	4
-;	xstep:		equ	2
+;	nphase:		equ	4 
+;	xstep:		equ	2 
 ;
 
-;
+;		
 maxspeed:   	equ 8*16
 maxspeedstep:	equ	1
 ;
@@ -194,13 +169,33 @@ phase			#1
 	endmap
 
 
+	
+	
+; *** tile set data in rom ***
 
+
+	page 5
+test_spt:
+	incbin spt.bin
+
+;	place 32 sprites
+test_sat:
+counter:=0
+	repeat	8
+	repeat	4
+	db	@@# * 24
+	db	48+@# * 32+@@#*8
+	db	6*4+(counter and %00001100)
+	db	15
+counter:=counter+4
+	endrepeat
+	endrepeat
 ; ------------
 ; megarom header
 
 	page 0
 	code page 0
-
+	
 	org	04000h
 	db	041h,042h
 	dw	initmain
@@ -233,13 +228,13 @@ i8255portb  equ 0a9h        ; keyboard column input
 i8255portc  equ 0aah        ; leds, motor, cassette, kbd line
 
 checkkbd:
-	in  a,(i8255portc)
-	and 011110000B          ; upper 4 bits contain info to preserve
-	or  e
-	out (i8255portc),a
-	in  a,(i8255portb)
-	ld  l,a
-	ret
+    in  a,(i8255portc)
+    and 011110000B          ; upper 4 bits contain info to preserve
+    or  e
+    out (i8255portc),a
+    in  a,(i8255portb)
+    ld  l,a
+    ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; a = value
@@ -264,12 +259,12 @@ _scr2:
 	ld	a,(_vdpReg+1)
 	or 2
 	ld	(_vdpReg+1),a
-
+	
 	ld	a,2
 	call 0x005f
-
+	
 	ret
-
+	
 ; set sprites
 
 set_sprites:
@@ -282,7 +277,7 @@ set_sprites:
 	setvdpwvram 0x1B00
 	ld	hl,test_sat
 	ld	a,:test_sat
-	ld	(_bank4),a
+	ld	(_bank4),a	
 	ld	bc,0x8098
 	otir
 	ret
@@ -302,7 +297,7 @@ cls:
 1:	out	(0x98),a
 	dec	b
 	jr	nz,1b
-
+	
 	setvdpwvram 0x2000
 	ld	b,0
 	xor	a
@@ -321,58 +316,58 @@ cls:
 ; Initialise the tiles common to all banks
 ;
 vraminit:
-	ld	a,:common_pattern
+	ld	a,:patterns11_13_15_17
 	ld (_bank4),a
-	ld	hl,common_pattern
+	ld	hl,patterns_base
 	ld	a,CommonTiles
-	ld	de,0x0800
+	ld	de,0x0800 
 	call write_2k
 
-	ld	hl,common_pattern
+	ld	hl,patterns_base
 	ld	a,CommonTiles
-	ld	de,0x1000
+	ld	de,0x1000 
 	call write_2k
 
-	ld	hl,common_pattern
+	ld	hl,patterns_base
 	ld	a,CommonTiles
-	ld	de,0x2800
+	ld	de,0x2800 
 	call write_2k
 
-	ld	hl,common_pattern
+	ld	hl,patterns_base
 	ld	a,CommonTiles
-	ld	de,0x3000
+	ld	de,0x3000 
 	call write_2k
 
-	ld	a,:common_color
+	ld	a,4+:patterns11_13_15_17			; colorbank = tilebank+4
 	ld (_bank4),a
-	ld	hl,common_color
+	ld	hl,patterns_base
 	ld	a,CommonTiles
-	ld	de,0x2000
+	ld	de,0x2000 
 	call write_2k
-	ld	hl,common_color
+	ld	hl,patterns_base
 	ld	a,CommonTiles
-	ld	de,0x0000
+	ld	de,0x0000 
 	call write_2k
 	ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;	load tile sets: only differences are loaded
-;	Note: rom space could be optimised storing common tiles only once in a separate bank
+;	Note: rom space could be optimised storing common tiles only once in a separate bank  
 
 setvramp1:
-	call getbank	;->a
+	call getbank	;->a 
 	ld (_bank4),a
 	call getaddr	;->hl
 	call getsize	;->a
 	ld	de,0x0800 + 8*CommonTiles
 	call write_2k
-
+	
 	call getaddr	;->hl
 	call getsize	;->a
 	ld	de,0x1000 + 8*CommonTiles
 	call write_2k
 
-	call getbank	;->a
+	call getbank	;->a 
 	add	a,4			; colorbank = tilebank+4
 	ld (_bank4),a
 	call getaddr	;->hl
@@ -380,21 +375,21 @@ setvramp1:
 	ld	de,0x2000 + 8*CommonTiles
 	call write_2k
 	ret
-
+	
 setvramp0:
-	call getbank	;->a
+	call getbank	;->a 
 	ld (_bank4),a
 	call getaddr	;->hl
 	call getsize	;->a
 	ld	de,0x2800 + 8*CommonTiles
 	call write_2k
-
+	
 	call getaddr	;->hl
 	call getsize	;->a
 	ld	de,0x3000 + 8*CommonTiles
 	call write_2k
 
-	call getbank	;->a
+	call getbank	;->a 
 	add	a,4			; colorbank = tilebank+4
 	ld (_bank4),a
 	call getaddr	;->hl
@@ -402,7 +397,7 @@ setvramp0:
 	ld	de,0x0000 + 8*CommonTiles
 	call write_2k
 	ret
-
+	
 getbank:
 	ld	de,(phase)
 	ld	hl,tilebank
@@ -417,6 +412,8 @@ getaddr:
 	add	hl,de
 	ld	h,(hl)
 	ld	l,0
+	ld	de,8*CommonTiles
+	add	hl,de
 	ret
 getsize:
 	push	hl
@@ -428,29 +425,29 @@ getsize:
 	pop	hl
 	ret
 
-
+	
 	;	patternsxy
 tilebank:
 	db	:patterns11_13_15_17,:patterns11_13_15_17,:patterns11_13_15_17,:patterns11_13_15_17
 	db	:patterns31_33_35_37,:patterns31_33_35_37,:patterns31_33_35_37,:patterns31_33_35_37
 	db	:patterns51_53_55_57,:patterns51_53_55_57,:patterns51_53_55_57,:patterns51_53_55_57
 	db	:patterns71_73_75_77,:patterns71_73_75_77,:patterns71_73_75_77,:patterns71_73_75_77
-tilesize:
+tilesize:	
 	db	TileSize11-CommonTiles,TileSize13-CommonTiles,TileSize15-CommonTiles,TileSize17-CommonTiles
 	db	TileSize31-CommonTiles,TileSize33-CommonTiles,TileSize35-CommonTiles,TileSize37-CommonTiles
 	db	TileSize51-CommonTiles,TileSize53-CommonTiles,TileSize55-CommonTiles,TileSize57-CommonTiles
 	db	TileSize71-CommonTiles,TileSize73-CommonTiles,TileSize75-CommonTiles,TileSize77-CommonTiles
-tileaddress:
+tileaddress:	
 	db	(patterns_base+0*2*1024)/256,(patterns_base+1*2*1024)/256,(patterns_base+2*2*1024)/256,(patterns_base+3*2*1024)/256
 	db	(patterns_base+0*2*1024)/256,(patterns_base+1*2*1024)/256,(patterns_base+2*2*1024)/256,(patterns_base+3*2*1024)/256
 	db	(patterns_base+0*2*1024)/256,(patterns_base+1*2*1024)/256,(patterns_base+2*2*1024)/256,(patterns_base+3*2*1024)/256
 	db	(patterns_base+0*2*1024)/256,(patterns_base+1*2*1024)/256,(patterns_base+2*2*1024)/256,(patterns_base+3*2*1024)/256
-
+	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; write 2K while ints are active from hl to de
 ; in: de vram address
 ;     hl ram address
-;	   a counter of 8 bytes chunks
+;	   a counter of 8 bytes chunks	
 write_2k:
 	push hl
 	ex	de,hl
@@ -473,7 +470,7 @@ write_2k:
 	dec a
 	jp nz,2b
 	ret
-
+	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;	in xmap,ymap
 ;
@@ -484,11 +481,11 @@ _plot_pnt:
 	ld	a,(phase)
 	add	a,metavec/256
 	ld	(phase),a
-
+	
 	ld	hl,buffer	; meta map in ram
-
-
-	ld	a,(ymap+1)	; ymap 8.8
+	
+	
+	ld	a,(ymap+1)	; ymap 8.8	
 	and	a
 	jr	z,1f
 	ld	bc,LvlWidth
@@ -496,12 +493,12 @@ _plot_pnt:
 	dec a
 	jr	nz,2b
 1:
-	ld	a,(xmap+1)	; xmap 8.8
+	ld	a,(xmap+1)	; xmap 8.8	
 	ld	e,a
 	ld	d,0
 	add	hl,de
 	ex	de,hl
-
+	
 	setvdpwvram 0x1900
 	ld	bc,0x1098
 1:	push	bc
@@ -510,14 +507,14 @@ _plot_pnt:
 	ld	l,a
 	ld	a,(phase)
 	ld	h,a
-	outi         ; Send data pointed by HL to VDP port (reg.C preloaded
+	outi         ; Send data pointed by HL to VDP port (reg.C preloaded 
 	inc	de
 	endrepeat
-
+	
 	ld	hl,LvlWidth-32
 	add	hl,de
 	ex	de,hl
-
+	
 	pop	bc
 	dec b
 	jp nz,1b
@@ -530,17 +527,17 @@ _plot_pnt:
 ;          defb 0x06 ; Reg# 2 0000[NAME TABLE BASE ADDRESS]          = 1800h
 
 ;          defb 0x9F ; Reg# 3 [COLOR BASE ADDRESS]                   = 2000h ; hybrid mode for colors
-;          defb 0xFF ; Reg# 3 [COLOR BASE ADDRESS]                   = 2000h ; regular mode for colors
+;          defb 0xFF ; Reg# 3 [COLOR BASE ADDRESS]                   = 2000h ; regular mode for colors	
 
 ;          defb 0x1F ; Reg# 3 [COLOR BASE ADDRESS]                   = 0000h ; hybrid mode for colors
-;          defb 0x7F ; Reg# 3 [COLOR BASE ADDRESS]                   = 0000h ; regular mode for colors
-
+;          defb 0x7F ; Reg# 3 [COLOR BASE ADDRESS]                   = 0000h ; regular mode for colors	
+	  
 ;          defb 0x00 ; Reg# 4 00000[PATTERN GENERATOR BASE ADDRESS]  = 0000h ; hybrid mode for patterns
 ;          defb 0x03 ; Reg# 4 00000[PATTERN GENERATOR BASE ADDRESS]  = 0000h ; regular mode for patterns
 
 ;          defb 0x04 ; Reg# 4 00000[PATTERN GENERATOR BASE ADDRESS]  = 2000h ; hybrid mode for patterns
 ;          defb 0x07 ; Reg# 4 00000[PATTERN GENERATOR BASE ADDRESS]  = 2000h ; regular mode for patterns
-
+          
 ;          defb 0x36 ; Reg# 5 0[SPRITE ATTRIBUTE TABLE BASE ADDRESS] = 1b00h
 ;          defb 0x07 ; Reg# 6 00000[SPRITE PTRN GNRTR BASE ADDRESS]  = 3800h
 ;          defb 0x01 ; Reg# 7 [TEXT COLOR 4bts][BACKDROP COLOR 4bts]
@@ -555,7 +552,7 @@ disp_page1:			; page 1 active
 disp_page0:			; page 0 active
 	setVdp 3,0x1F	; 	colours at 0x0000	(hybrid)
 	setVdp 4,0x07	;	patterns at 0x2000	(regular: used 0x2800 0x3000)
-	ret
+	ret	
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -579,15 +576,15 @@ rominit:
 	ld      a,(hl)
 	and     0x0c
 	or      b
-
+    
 	ld      h,0x80
-	call    0x24
-
+	call    0x24  
+	
 	; now we have:
 	; page 0 	- bios
 	; page 1,2	- megarom mapper
 	; page 3	- RAM
-
+	
 	; init megarom mapper
 	xor	a
 	ld	(_bank1),a
@@ -599,7 +596,7 @@ rominit:
 	ld	(_bank4),a
 
 	ret
-
+	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; ROM initialisation
 
@@ -609,7 +606,7 @@ initmain:
 	halt
 	di
 	call 	rominit
-
+	
 	; now the first 32KB of the megarom are active
 
 	;clear 8K RAM
@@ -618,15 +615,15 @@ initmain:
 	ld	de,0xc001
 
 	ld	(hl),0
-	ldir
+	ldir	
 
 	; screen 2
 	call _scr2
-
+	
 	ld	a,0
 	ld	e,7
 	call	_setvdpreg
-
+	
 	halt
 	call	cls
 	call	set_sprites
@@ -637,8 +634,8 @@ initmain:
 	ld	bc,LvlWidth*LvlHeigh
 	ld	hl,metamap
 	ld	de,buffer
-	ldir
-
+	ldir	
+	
 	ld	hl,0
 	ld	(xmap),hl
 	ld	hl,0
@@ -649,132 +646,132 @@ initmain:
 
 	call	vraminit		; load common tiles
 
-mainloop:
-
-	halt
+mainloop:	
+	
+	halt 
 	call 	disp_page0
 	call	_plot_pnt
 
 	call	sub_main
 	call	setvramp1
 
-	halt
+	halt 
 	call 	disp_page1
 	call	_plot_pnt
 
 	call	sub_main
 	call	setvramp0
-
+	
 	jp mainloop
-
-dxdycontrol:
-	ld  a,l
-	and 0x80    ; right
-	jr  nz,1f
-	ld  a,(dxmap)
-	cp  maxspeed        ; MAX SPEED
-	jr  z,1f
-	add a,maxspeedstep
-	ld  (dxmap),a
+	
+dxdycontrol:	
+    ld  a,l
+    and 0x80    ; right
+    jr  nz,1f
+    ld  a,(dxmap)
+    cp  maxspeed        ; MAX SPEED
+    jr  z,1f
+    add a,maxspeedstep
+    ld  (dxmap),a
 1:
-	ld  a,l
-	and 0x10    ; left
-	jr  nz,1f
-	ld  a,(dxmap)
-	cp  -maxspeed       ; MAX SPEED
-	jr  z,1f
-	add a,-maxspeedstep
-	ld  (dxmap),a
+    ld  a,l
+    and 0x10    ; left
+    jr  nz,1f
+    ld  a,(dxmap)
+    cp  -maxspeed       ; MAX SPEED
+    jr  z,1f
+    add a,-maxspeedstep
+    ld  (dxmap),a
 1:
-	; y position
-	ld  a,l
-	and 0x20    ; up
-	jr  nz,1f
-	ld  a,(dymap)
-	cp  -maxspeed        ; MAX SPEED
-	jr  z,1f
-	add a,-maxspeedstep
-	ld  (dymap),a
+    ; y position
+    ld  a,l
+    and 0x20    ; up
+    jr  nz,1f
+    ld  a,(dymap)
+    cp  -maxspeed        ; MAX SPEED
+    jr  z,1f
+    add a,-maxspeedstep
+    ld  (dymap),a
 1:
-	ld  a,l
-	and 0x40    ; down
-	jr  nz,1f
-	ld  a,(dymap)
-	cp  maxspeed       ; MAX SPEED
-	jr  z,1f
-	add a,maxspeedstep
-	ld  (dymap),a
+    ld  a,l
+    and 0x40    ; down
+    jr  nz,1f
+    ld  a,(dymap)
+    cp  maxspeed       ; MAX SPEED
+    jr  z,1f
+    add a,maxspeedstep
+    ld  (dymap),a
 1:
 	ret
-
-stopx:
+	
+stopx:	
 	xor	a
 	ld  (dxmap),a
 	ld	hl,0
-	ret
+	ret	
 stopy:
 	xor	a
 	ld  (dymap),a
 	ld	hl,0
-	ret
-
+	ret	
+	
 sub_main:
-	; x speed control
-	ld  e,8
-	call    checkkbd
+    ; x speed control
+    ld  e,8
+    call    checkkbd
 	call	dxdycontrol
 
-	ld  de,(xmap)		; FP 4.4
-	ld  a,(dxmap)
-	ld  l,a
-	add a,a
-	sbc a,a
-	ld  h,a
-[4]	add	hl,hl
+    ld  de,(xmap)		; FP 4.4
+    ld  a,(dxmap)
+    ld  l,a
+    add a,a
+    sbc a,a
+    ld  h,a
+[4]	add	hl,hl	
 	and a
-	adc hl,de
+    adc hl,de
 	call	m,stopx
 	ld	de,(LvlWidth-32)*256-64
-	and a
+	and a	
 	sbc	hl,de
 	call	p,stopx
 	add	hl,de
-	ld  (xmap),hl
+    ld  (xmap),hl
 
-	ld  de,(ymap)		; FP 4.4
-	ld  a,(dymap)
-	ld  l,a
-	add a,a
-	sbc a,a
-	ld  h,a
+    ld  de,(ymap)		; FP 4.4
+    ld  a,(dymap)
+    ld  l,a
+    add a,a
+    sbc a,a
+    ld  h,a
 [4]	add	hl,hl
 	and	a
-	adc hl,de
+    adc hl,de
 	call	m,stopy
 	ld	de,(LvlHeigh-16)*256-64
-	and a
+	and a	
 	sbc	hl,de
 	call	p,stopy
 	add	hl,de
-	ld  (ymap),hl
+    ld  (ymap),hl
 
 
-	ld	a,(xmap)	; xmap 8.8
+	ld	a,(xmap)	; xmap 8.8	
 [2]	rlca
 	and		%00000011
 	ld	b,a
-	ld	a,(ymap)	; ymap 8.8
+	ld	a,(ymap)	; ymap 8.8	
 [4]	rlca
 	and		%00001100
 	or	b
 	ld	(phase),a
 	ret
-
+	
 
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;	convert a VRAM position pointed by HL
+;	convert a VRAM position pointed by HL 
 ;	in a VRAM address with offset in DE
 ;	sets the VDP for write
 ;	in:
@@ -802,6 +799,7 @@ setvramaddr:
 	pop	hl
 	inc	hl
 	ret
+	
 
-
-
+		
+	
