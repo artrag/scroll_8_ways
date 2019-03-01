@@ -164,8 +164,16 @@ _bank2			equ	0x7000
 _bank3			equ	0x9000
 _bank4			equ	0xB000
 
+_PCT:			equ	0x0000
+_PGT:			equ	0x2000
+
+
 ; -----------------------------
 ; parameters
+;
+;	LvlWidth:	equ	373
+;	nphase:		equ	4
+;	xstep:		equ	2
 ;
 
 ;
@@ -186,12 +194,28 @@ buffer:			#8*1024
 slotvar:		#1
 slotram:       	#1
 
+msxtype			#1
+palette			#1
+
+vsf:			#1
+cnt:			#1
+muteflag:		#1
+
+SLOT            #1
+PAGE1RAM        #1
+RAMSLOT         #1
+
+SCC				#1
+SUB             #1
+
 xmap			#2		; FP 8.8
 ymap			#2		; FP 8.8
+
 dxmap           #1		; FP 4.4
 dymap           #1		; FP 4.4
 
 phase			#1
+tmp				#1
 vpage			#1
 
 	endmap
@@ -202,23 +226,6 @@ vpage			#1
 
 	page 2
 myisr:
- 	pop		af		; 	remove return address
-	in  a,(0x99)	; 	s0 reset
- 	pop    ix
-	pop    iy
-	pop    af
-	pop    bc
-	pop    de
-	pop    hl
-	ex     af,af'
-	exx
-	pop    af
-	pop    bc
-	pop    de
-	pop    hl
-	ei
-	ret
-	
 ;	push   hl
 ;	push   de
 ;	push   bc
@@ -244,9 +251,9 @@ myisr:
 
 	in  a,(0x99)	; 	s0 reset
 
-	; _setVdp 7,8  	; 	
-	; call    _plot_pnt
-	; _setVdp 7,0  	; 	
+	_setVdp 7,8  ; 	
+	call    _plot_pnt
+	_setVdp 7,0  ; 	
 
 1:  in  a,(0x99)	; 	wait raster line
 	and %01011111
@@ -258,13 +265,11 @@ myisr:
 	ld  a,(vpage)	
 	and a
 	jp  z,page0
-page1:				; 	page 1 active
-	_setVdp 3,0x9F	; 	colours at 0x2000	(hybrid)
-	_setVdp 4,0x03	;	patterns at 0x0000	(regular: used 0x0800 0x1000)
+page1:
+	call    disp_page1
 	jp  1f
-page0:				; 	page 0 active
-	_setVdp 3,0x1F	; 	colours at 0x0000	(hybrid)
-	_setVdp 4,0x07	;	patterns at 0x2000	(regular: used 0x2800 0x3000)
+page0:
+	call    disp_page0
 1:
 	_setVdp 5,0x36  ;   SAT at 0x1b00
 	_setVdp 6,0x07  ;   SPT at 0x3800   (64 sprites 16x16)
@@ -331,6 +336,17 @@ checkkbd:
 	ld  l,a
 	ret
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; a = value
+; e = register
+; _setvdpreg:
+	; di
+	; out (0x99),a
+	; ld	a,e
+	; or	0x80
+	; out (0x99),a
+	; ei
+	; ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; vdp access
@@ -352,6 +368,7 @@ _scr2:
 ; set sprites
 
 set_sprites:
+	halt
 	setvdpwvram 0x3800
 	ld	hl,test_spt
 	ld	a,:test_spt
@@ -368,102 +385,94 @@ set_sprites:
 write_256:
 	ld	(_bank4),a
 	ld	bc,0x0098
-	ld	a,8
-1:	outi
-	jp nz,1b
-	dec	a
-	jp nz,1b
+	repeat 8
+	otir
+	endrepeat
 	ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;	Initialise the tiles common to all banks
-;	Common tiles are stored only once in a separate bank
+; Initialise the tiles common to all banks
 ;
 initcommontiles:
 	ld	a,:common_pattern
 	ld (_bank4),a
 	ld	hl,common_pattern
 	ld	a,CommonTiles
-	ld	de,0x0800 + 4000h
+	ld	de,0x0800
 	call write_2k
 
 	ld	hl,common_pattern
 	ld	a,CommonTiles
-	ld	de,0x1000 + 4000h
+	ld	de,0x1000
 	call write_2k
 
 	ld	hl,common_pattern
 	ld	a,CommonTiles
-	ld	de,0x2800 + 4000h
+	ld	de,0x2800
 	call write_2k
 
 	ld	hl,common_pattern
 	ld	a,CommonTiles
-	ld	de,0x3000 + 4000h
+	ld	de,0x3000
 	call write_2k
 
 	ld	a,:common_color
 	ld (_bank4),a
 	ld	hl,common_color
 	ld	a,CommonTiles
-	ld	de,0x2000 + 4000h
+	ld	de,0x2000
 	call write_2k
 	ld	hl,common_color
 	ld	a,CommonTiles
-	ld	de,0x0000 + 4000h
+	ld	de,0x0000
 	call write_2k
 	ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;	load tile sets: only differences are loaded
+;	Note: rom space could be optimised storing common tiles only once in a separate bank
 
-setvramp:
-	ld	a,(vpage)
-	and	a
-	jp	z,setvramp1	;	PGT at	0x0800/0x1000,	PCT at 0x0800
-	jp	setvramp0	;	PGT at	0x2800/0x3000,	PCT at 0x0000
-
-setvramp1:			;	PGT at	0x0800/0x1000,	PGT at 0x2000
+setvramp1:
 	call getbank	;->a
 	ld (_bank4),a
-	call getsize	;->a
 	call getaddr	;->hl
-	ld	de,0x0800 + 8*CommonTiles + 4000h
+	call getsize	;->a
+	ld	de,0x0800 + 8*CommonTiles
 	call write_2k
 
-	call getsize	;->a
 	call getaddr	;->hl
-	ld	de,0x1000 + 8*CommonTiles + 4000h
+	call getsize	;->a
+	ld	de,0x1000 + 8*CommonTiles
 	call write_2k
 
 	call getbank	;->a
 	add	a,4			; colorbank = tilebank+4
 	ld (_bank4),a
-	call getsize	;->a
 	call getaddr	;->hl
-	ld	de,0x2000 + 8*CommonTiles + 4000h
+	call getsize	;->a
+	ld	de,0x2000 + 8*CommonTiles
 	call write_2k
 	ret
 
-setvramp0:			;	PGT at	0x2800/0x3000,	PGT at 0x0000
+setvramp0:
 	call getbank	;->a
 	ld (_bank4),a
-	call getsize	;->a
 	call getaddr	;->hl
-	ld	de,0x2800 + 8*CommonTiles + 4000h
+	call getsize	;->a
+	ld	de,0x2800 + 8*CommonTiles
 	call write_2k
 
-	call getsize	;->a
 	call getaddr	;->hl
-	ld	de,0x3000 + 8*CommonTiles + 4000h
+	call getsize	;->a
+	ld	de,0x3000 + 8*CommonTiles
 	call write_2k
 
 	call getbank	;->a
 	add	a,4			; colorbank = tilebank+4
 	ld (_bank4),a
-	call getsize	;->a
 	call getaddr	;->hl
-	ld	de,0x0000 + 8*CommonTiles + 4000h
+	call getsize	;->a
+	ld	de,0x0000 + 8*CommonTiles
 	call write_2k
 	ret
 
@@ -483,11 +492,14 @@ getaddr:
 	ld	l,0
 	ret
 getsize:
+	push	hl
 	ld	de,(phase)
 	ld	hl,tilesize
 	ld	d,0
 	add	hl,de
 	ld	a,(hl)
+
+	pop	hl
 	ret
 
 
@@ -514,58 +526,41 @@ tileaddress:
 ;     hl ram address
 ;	   a counter of 8 bytes chunks
 write_2k:
-	di
+	push hl
+	ex	de,hl
+	set	6,h
 	ld	c,0x99
-	out (c),e
-	out (c),d	;c = 0x99, HL with write setup bit set
-
-	ld	e,a
-	ld	d,0
-	ex	de,hl
-[3]	add hl,hl
-	ex	de,hl
-	
-	dec	c
-	inc	d
-	ld	b,e
-2:	outi
+	ld	de,8
+	exx
+	pop	hl		; ram source in HL'
+	ld	c,0x98	; data port in c'
+2:	di
+	exx
+	out (c),l
+	out (c),h	;c = 0x99, HL with write setup bit set
+	add hl,de	;de = 16
+	exx
+	ld b,8
+1:	outi		;c' = 0x98
+	jp nz,1b
+	dec a
 	jp nz,2b
-	dec	d
-	jp nz,2b	
 	ei
 	ret
-	
-; write_2k:
-	; push hl
-	; ex	de,hl
-	; set	6,h
-	; ld	c,0x99
-	; ld	de,8
-	; exx
-	; pop	hl		; ram source in HL'
-	; ld	c,0x98	; data port in c'
-; 2:	di
-	; exx
-	; out (c),l
-	; out (c),h	;c = 0x99, HL with write setup bit set
-	; add hl,de	;de = 8
-	; exx
-	; ld b,8
-; 1:	outi		;c' = 0x98
-	; jp nz,1b
-	; ei
-	; dec a
-	; jp nz,2b
-	; ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;	in xmap,ymap
 ;
-plot_pnt:
+_plot_pnt:
 	ld	a,:metavec
 	ld	(_bank4),a
 
+	ld	a,(phase)
+	add	a,metavec/256
+	ld	(tmp),a
+
 	ld	hl,buffer	; meta map in ram
+
 
 	ld	a,(ymap+1)	; ymap 8.8
 	and	a
@@ -579,64 +574,29 @@ plot_pnt:
 	ld	e,a
 	ld	d,0
 	add	hl,de
-	ex	de,hl		; DE = buffer + round(ymap)*LvlWidth+round(xmap)
+	ex	de,hl
 
-	setvdpwvram 0x1900
-	
-	ld  c,0x98
-	ld  ixh,16
-
-	ld	a,(phase)
-	add	a,metavec/256
-	
-1:	
-	ld	h,a
-	ex	af',af
-	
-	ld  a,e
-	add a,32
-	jp  nc,.fast_loop
-
-	
+	_setvdpwvram 0x1900
+	ld	bc,0x1098
+1:	push	bc
 	repeat 32
 	ld	a,(de)
 	ld	l,a
-	outi         	; Send data pointed by HL to VDP port (reg.C preloaded)
+	ld	a,(tmp)
+	ld	h,a
+	outi         ; Send data pointed by HL to VDP port (reg.C preloaded
 	inc	de
 	endrepeat
-	
-	ex	af',af
-	
+
 	ld	hl,LvlWidth-32
 	add	hl,de
 	ex	de,hl
 
-	dec ixh
+	pop	bc
+	dec b
 	jp nz,1b
 
 	ret
-
-.fast_loop
-
-	repeat 32
-	ld	a,(de)
-	ld	l,a
-	outi         	; Send data pointed by HL to VDP port (reg.C preloaded)
-	inc	e			; save 32 INC DE 
-	endrepeat
-	
-	ex	af',af
-	
-	ld	hl,LvlWidth-32
-	add	hl,de
-	ex	de,hl
-
-	dec ixh
-	jp nz,1b
-
-	ret
-	
-	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;          defb 0x02 ; Reg# 0 000000[M3][EV]
@@ -691,6 +651,7 @@ EXPTBL:         equ     0FCC1h  ; Bios Slot / Expansion Slot
 ; Nuestro ROM.
 ; -----------------------
 
+rominit:
 search_slotset:
 	di
 	call    search_slot
@@ -819,28 +780,37 @@ setslotpage0:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ;   load tile sets and sprites
-vram_init:
-	setvdpwvram 0x1B80              ; sprites in the scorebar
+vraminit:
+
+; set sprites
+
+	_setvdpwvram 0x1B80              ; sprites in the scorebar
 	ld  hl,scorebar_sat
 	ld	a,:scorebar_sat
 	call    write_256
 
-	setvdpwvram 0x1C00
+	_setvdpwvram 0x1C00
 	ld  hl,tileset					; dummy tile set from basic rom
 	ld	a,:tileset
 	call    write_256
 
-	setvdpwvram 0x1800				;   dummy PNT
-	ld	b,0
-	ld	a,4
-1:	out (0x98),a
+
+	_setvdpwvram 0x1800
+	xor a               	;   dummy PNT
+	ld	b,a
+1:	or	128
+	out (0x98),a
+	inc a
 	inc	b
 	jr	nz,1b
 
-	setvdpwvram 0x1BD0
+	_setvdpwvram 0x1BD0
 	ld	b,16				; 	dummy colors
-	ld	a,11h
-1:	out (0x98),a
+1:	ld	a,b
+[2]	inc	a
+[4]	add	a,a
+	or b
+	out (0x98),a
 	dec	b
 	jr	nz,1b
 	ret
@@ -852,17 +822,15 @@ initmain:
 	
 	call _scr2				; screen 2
 	
-	call 	search_slotset	; now the first 32KB of the megarom are active
+	call 	rominit			; now the first 32KB of the megarom are active
+	call 	vraminit		; set data in the top 3d of the screen
 			
 	;call	setrompage0		; 48K of rom are active - bios is excluded
 	
 	_setVdp 7,0
 	ei
 	call	set_sprites
-	call 	vram_init		; set data in the top 3d of the screen
-	
-	call	initcommontiles		;	load common tiles
-	
+
 	; move meta map in ram
 	ld	a,:metamap
 	ld	(_bank4),a
@@ -871,59 +839,40 @@ initmain:
 	ld	de,buffer
 	ldir
 
+	ld	hl,0
+	ld	(xmap),hl
+	ld	hl,0
+	ld	(ymap),hl
+	xor a
+	ld	(dxmap),a
+	ld	(dymap),a
+	ld	(vpage),a
+	
+	call	initcommontiles		;	load common tiles
+
 	ld	hl,myisr
 	ld	(0xFD9A+1),hl
 	ld	a,0xC3
 	ld	(0xFD9A),a
 
-	ld	hl,0
-	ld	(xmap),hl
-	ld	(ymap),hl
-	xor a
-	ld	(dxmap),a
-	ld	(dymap),a
-	ld	(phase),a
-	inc	a
-	ld	(vpage),a
-	
-
 mainloop:
 	
-	halt
-	; setVdp 7,8
-	call	show_activepage
-	call    plot_pnt		;	use phase to plot the correct PNT
-	; setVdp 7,0
-	
-	call	sub_main		; 	compute new "phase"
-
-	; setVdp 7,10
-	call	setvramp		;	use phase to select the tileset loaded to page 1/0
-	; setVdp 7,0
-		
+	call	sub_main		; 	compute phase
+	setVdp 7,15  ; 	
+	call	setvramp		;	use phase to select the tileset in page 1/0
+	setVdp 7,0  ; 	
 	ld	a,(vpage)
-	xor 1					; 	swap page
-	ld	(vpage),a			
-		
-	jp 	mainloop
+	xor 1
+	ld	(vpage),a			;	call 	disp_page 0/1
+	halt					; 	show page 0/1
 	
+	jp mainloop
 	
-show_activepage:	
-	ld  a,(vpage)	
-	and a
-	jp  z,.page0
-.page1:				; 	page 1 active
-	di
-	_setVdp 3,0x9F	; 	PCT at 0x2000	(hybrid)
-	_setVdp 4,0x03	;	PGT at 0x0000	(regular: used 0x0800 0x1000)
-	ei
-	ret
-.page0:				; 	page 0 active
-	di
-	_setVdp 3,0x1F	; 	PCT at 0x0000	(hybrid)
-	_setVdp 4,0x07	;	PGT at 0x2000	(regular: used 0x2800 0x3000)
-	ei
-	ret
+setvramp:
+	ld	a,(vpage)
+	and	a
+	jp	z,setvramp1
+	jp	setvramp0
 	
 dxdycontrol:
 	ld  a,l
@@ -1028,6 +977,38 @@ sub_main:
 	ld	(phase),a
 	ret
 
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;	convert a VRAM position pointed by HL
+;	in a VRAM address with offset in DE
+;	sets the VDP for write
+;	in:
+;		HL -> VRAM Position
+;		DE = VRAM Offset
+;	out:
+;		HL++
+
+setvramaddr:
+	ld	a,(hl)
+	push hl
+	ld	l,a
+	ld	h,0
+	add	hl,hl
+	add	hl,hl
+	add	hl,hl
+	add	hl,de
+	ld	a,l
+	di
+	out	(0x99),a
+	ld	a,h
+	or	0x40
+	out	(0x99),a
+	ei
+	pop	hl
+	inc	hl
+	ret
 
 
 
