@@ -184,15 +184,15 @@ buffer:			#8*1024
 
 
 slotvar:		#1
-slotram:       	#1
+slotram:		#1
 
-xmap			#2		; FP 8.8
-ymap			#2		; FP 8.8
-dxmap           #1		; FP 4.4
-dymap           #1		; FP 4.4
+xmap:			#2		; FP 8.8
+ymap:			#2		; FP 8.8
+dxmap:			#1		; FP 4.4
+dymap:			#1		; FP 4.4
 
-phase			#1
-vpage			#1
+phase:			#1
+vpage:			#1
 
 	endmap
 
@@ -200,9 +200,11 @@ vpage			#1
 ; Interrupt service routine
 ;
 
+; remove any processing from the ISR
+
 	page 2
 myisr:
- 	pop		af		; 	remove return address
+ 	pop	af		; 	remove return address
 	in  a,(0x99)	; 	s0 reset
  	pop    ix
 	pop    iy
@@ -231,58 +233,60 @@ myisr:
 ;	push   af
 ;	push   iy
 ;	push   ix
-	
-	pop		af		; 	remove return address
 
-	_setVdp 0,0x00  ; 	screen 1
+;	disabled code for future developments
 
-	_setVdp 4,0x03  ; 	PGT at 1800h (used from 0x1C00 to 0x1FFF, only 128 characters)
-	_setVdp 3,0x6F  ; 	PCT at 1BC0h (used from 0x1BD0 to 0x1BDF, only 16 bytes)
+;	pop		af		; 	remove return address
 
-	_setVdp 5,0x37  ;   SAT at 1B80
-	_setVdp 6,0x03  ;   SPT at 1800   (used from 0x1C00 to 0x1FFF  only 32 sprites 16x16)
+;	_setVdp 0,0x00  ; 	screen 1
 
-	in  a,(0x99)	; 	s0 reset
+;	_setVdp 4,0x03  ; 	PGT at 1800h (used from 0x1C00 to 0x1FFF, only 128 characters)
+;	_setVdp 3,0x6F  ; 	PCT at 1BC0h (used from 0x1BD0 to 0x1BDF, only 16 bytes)
+
+;	_setVdp 5,0x37  ;   SAT at 1B80
+;	_setVdp 6,0x03  ;   SPT at 1800   (used from 0x1C00 to 0x1FFF  only 32 sprites 16x16)
+
+;	in  a,(0x99)	; 	s0 reset
 
 	; _setVdp 7,8  	; 	
 	; call    _plot_pnt
 	; _setVdp 7,0  	; 	
 
-1:  in  a,(0x99)	; 	wait raster line
-	and %01011111
-	cp  %01000100	; 	plane 4 =0x44
-	jp  nz,1b
+;1:  in  a,(0x99)	; 	wait raster line
+;	and %01011111
+;	cp  %01000100	; 	plane 4 =0x44
+;	jp  nz,1b
 
-	_setVdp 0,0x02  ;	screen 2
+;	_setVdp 0,0x02  ;	screen 2
 
-	ld  a,(vpage)	
-	and a
-	jp  z,page0
-page1:				; 	page 1 active
-	_setVdp 3,0x9F	; 	colours at 0x2000	(hybrid)
-	_setVdp 4,0x03	;	patterns at 0x0000	(regular: used 0x0800 0x1000)
-	jp  1f
-page0:				; 	page 0 active
-	_setVdp 3,0x1F	; 	colours at 0x0000	(hybrid)
-	_setVdp 4,0x07	;	patterns at 0x2000	(regular: used 0x2800 0x3000)
-1:
-	_setVdp 5,0x36  ;   SAT at 0x1b00
-	_setVdp 6,0x07  ;   SPT at 0x3800   (64 sprites 16x16)
+;	ld  a,(vpage)	
+;	and a
+;	jp  z,page0
+;page1:				; 	page 1 active
+;	_setVdp 3,0x9F	; 	colours at 0x2000	(hybrid)
+;	_setVdp 4,0x03	;	patterns at 0x0000	(regular: used 0x0800 0x1000)
+;	jp  1f
+;page0:				; 	page 0 active
+;	_setVdp 3,0x1F	; 	colours at 0x0000	(hybrid)
+;	_setVdp 4,0x07	;	patterns at 0x2000	(regular: used 0x2800 0x3000)
+;1:
+;	_setVdp 5,0x36  ;   SAT at 0x1b00
+;	_setVdp 6,0x07  ;   SPT at 0x3800   (64 sprites 16x16)
 
-	pop    ix
-	pop    iy
-	pop    af
-	pop    bc
-	pop    de
-	pop    hl
-	ex     af,af'
-	exx
-	pop    af
-	pop    bc
-	pop    de
-	pop    hl
-	ei
-	ret
+;	pop    ix
+;	pop    iy
+;	pop    af
+;	pop    bc
+;	pop    de
+;	pop    hl
+;	ex     af,af'
+;	exx
+;	pop    af
+;	pop    bc
+;	pop    de
+;	pop    hl
+;	ei
+;	ret
 
 
 ; ------------
@@ -559,7 +563,7 @@ write_2k:
 	; ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;	in xmap,ymap
+;	in xmap,ymap,phase
 ;
 plot_pnt:
 	ld	a,:metavec
@@ -670,11 +674,6 @@ disp_page0:			; page 0 active
 	_setVdp 3,0x1F	; 	colours at 0x0000	(hybrid)
 	_setVdp 4,0x07	;	patterns at 0x2000	(regular: used 0x2800 0x3000)
 	ret
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; set pages and subslot
-;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; set pages and subslot
@@ -902,7 +901,7 @@ mainloop:
 	; setVdp 7,0
 		
 	ld	a,(vpage)
-	xor 1					; 	swap page
+	xor 1				; 	swap page
 	ld	(vpage),a			
 		
 	jp 	mainloop
