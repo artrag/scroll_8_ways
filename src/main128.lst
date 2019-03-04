@@ -1,4 +1,4 @@
-Sjasm Z80 Assembler v0.42b8 - www.xl2s.tk             [2019.03.04 - 22:15:09]
+Sjasm Z80 Assembler v0.42b8 - www.xl2s.tk             [2019.03.04 - 22:39:23]
 
 src\main128.asm
 Errors: 0
@@ -330,7 +330,7 @@ Errors: 0
      297   00:4000                      
      298   00:4000                      	org	04000h
      299   00:4000  41 42               	db	041h,042h
-     300   00:4002  17 44               	dw	initmain
+     300   00:4002  0B 44               	dw	initmain
      301   00:4004                      	dz 	'TRI004'
      301   00:4004  54 52 49 30 30 34 00 
      302   00:400B  00 (5)              	ds	5
@@ -590,646 +590,660 @@ Errors: 0
      534   00:4186                      	
      535   00:4186  0D                  	dec	c
      536   00:4187                      	
-     537   00:4187  7A                  	ld	a,d
+     537   00:4187  7B                  	ld	a,e
      538   00:4188  A7                  	and	a
-     539   00:4189  C4 99 41            	call	nz,3f
-     540   00:418C  7B                  	ld	a,e
-     541   00:418D  A7                  	and	a
-     542   00:418E  CA 97 41            	jp	z,4f
-     543   00:4191  43                  	ld	b,e
-     544   00:4192  ED A3               2:	outi
-     545   00:4194  C2 92 41            	jp	nz,2b
-     546   00:4197  FB                  4:	ei
-     547   00:4198  C9                  	ret
-     548   00:4199                      	
-     549   00:4199  06 00               3:	ld	b,0
-     550   00:419B  ED A3               2:	outi
-     551   00:419D  C2 9B 41            	jp	nz,2b
-     552   00:41A0  15                  	dec	d
-     553   00:41A1  C2 9B 41            	jp nz,2b	
-     554   00:41A4  C9                  	ret
-     555   00:41A5                      
-     556   00:41A5                      
-     557   00:41A5                      		
-     558   00:41A5                      ; write_2k:
-     559   00:41A5                      	; push hl
-     560   00:41A5                      	; ex	de,hl
-     561   00:41A5                      	; set	6,h
-     562   00:41A5                      	; ld	c,0x99
-     563   00:41A5                      	; ld	de,8
-     564   00:41A5                      	; exx
-     565   00:41A5                      	; pop	hl		; ram source in HL'
-     566   00:41A5                      	; ld	c,0x98	; data port in c'
-     567   00:41A5                      ; 2:	di
-     568   00:41A5                      	; exx
-     569   00:41A5                      	; out (c),l
-     570   00:41A5                      	; out (c),h	;c = 0x99, HL with write setup bit set
-     571   00:41A5                      	; add hl,de	;de = 8
-     572   00:41A5                      	; exx
-     573   00:41A5                      	; ld b,8
-     574   00:41A5                      ; 1:	outi		;c' = 0x98
-     575   00:41A5                      	; jp nz,1b
-     576   00:41A5                      	; ei
-     577   00:41A5                      	; dec a
-     578   00:41A5                      	; jp nz,2b
-     579   00:41A5                      	; ret
-     580   00:41A5                      
-     581   00:41A5                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-     582   00:41A5                      ;	in xmap,ymap,phase
-     583   00:41A5                      ;
-     584   00:41A5                      plot_pnt:
-     585   00:41A5  3E 07               	ld	a,:metavec
-     586   00:41A7  32 00 B0            	ld	(_bank4),a
-     587   00:41AA                      
-     588   00:41AA  21 00 C0            	ld	hl,buffer	; meta map in ram
-     589   00:41AD                      
-     590   00:41AD  3A 05 E0            	ld	a,(ymap+1)	; ymap 8.8
-     591   00:41B0  A7                  	and	a
-     592   00:41B1  28 07               	jr	z,1f
-     593   00:41B3  01 40 00            	ld	bc,LvlWidth
-     594   00:41B6  09                  2:	add	hl,bc
-     595   00:41B7  3D                  	dec a
-     596   00:41B8  20 FC               	jr	nz,2b
-     597   00:41BA                      1:
-     598   00:41BA  3A 03 E0            	ld	a,(xmap+1)	; xmap 8.8
-     599   00:41BD  5F                  	ld	e,a
-     600   00:41BE  16 00               	ld	d,0
-     601   00:41C0  19                  	add	hl,de
-     602   00:41C1  EB                  	ex	de,hl		; DE = buffer + round(ymap)*LvlWidth+round(xmap)
-     603   00:41C2                      
-     604   00:41C2                      	setvdpwvram 0x1900
-     604   00:41C2  F3                >     di
-     604   00:41C3                    >     _setvdpwvram value
-     604   00:41C3                    >     if (value & 0xFF)
-     604   00:41C3                    ~         ld  a,value & 0xFF
-     604   00:41C3                    ~     else
-     604   00:41C3  AF                >         xor a
-     604   00:41C4                    >     endif
-     604   00:41C4  D3 99             >     out (0x99),a
-     604   00:41C6  3E 59             >     ld  a,0x40 + (value/256)
-     604   00:41C8  D3 99             >     out (0x99),a
-     604   00:41CA  FB                >     ei
-     605   00:41CB                      	
-     606   00:41CB  0E 98               	ld  c,0x98
-     607   00:41CD  DD 26 10            	ld  ixh,16
-     608   00:41D0                      
-     609   00:41D0  3A 08 E0            	ld	a,(phase)
-     610   00:41D3  C6 A0               	add	a,metavec/256
-     611   00:41D5                      	
-     612   00:41D5                      1:	
-     613   00:41D5  67                  	ld	h,a
-     614   00:41D6  08                  	ex	af',af
-     615   00:41D7                      	
-     616   00:41D7  7B                  	ld  a,e
-     617   00:41D8  C6 20               	add a,32
-     618   00:41DA  D2 89 42            	jp  nc,.fast_loop
-     619   00:41DD                      
-     620   00:41DD                      	
-     621   00:41DD                      	repeat 32
-     622   00:41DD                    < 	ld	a,(de)
-     623   00:41DD                    < 	ld	l,a
-     624   00:41DD                    < 	outi         	; Send data pointed by HL to VDP port (reg.C preloaded)
-     625   00:41DD                    < 	inc	de
-     626   00:41DD                    < 	endrepeat
-     626   00:41DD  1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 
-     626   00:41ED  6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F 
-     626   00:41FD  ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED 
-     626   00:420D  A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 
-     626   00:421D  13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 
-     626   00:422D  1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 
-     626   00:423D  6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F 
-     626   00:424D  ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED 
-     626   00:425D  A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 
-     626   00:426D  13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 
-     627   00:427D                      	
-     628   00:427D  08                  	ex	af',af
-     629   00:427E                      	
-     630   00:427E  21 20 00            	ld	hl,LvlWidth-32
-     631   00:4281  19                  	add	hl,de
-     632   00:4282  EB                  	ex	de,hl
-     633   00:4283                      
-     634   00:4283  DD 25               	dec ixh
-     635   00:4285  C2 D5 41            	jp nz,1b
-     636   00:4288                      
-     637   00:4288  C9                  	ret
-     638   00:4289                      
-     639   00:4289                      .fast_loop
-     640   00:4289                      
-     641   00:4289                      	repeat 32
-     642   00:4289                    < 	ld	a,(de)
-     643   00:4289                    < 	ld	l,a
-     644   00:4289                    < 	outi         	; Send data pointed by HL to VDP port (reg.C preloaded)
-     645   00:4289                    < 	inc	e			; save 32 INC DE 
-     646   00:4289                    < 	endrepeat
-     646   00:4289  1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 
-     646   00:4299  6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F 
-     646   00:42A9  ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED 
-     646   00:42B9  A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 
-     646   00:42C9  1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 
-     646   00:42D9  1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 
-     646   00:42E9  6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F 
-     646   00:42F9  ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED 
-     646   00:4309  A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 
-     646   00:4319  1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 
-     647   00:4329                      	
-     648   00:4329  08                  	ex	af',af
-     649   00:432A                      	
-     650   00:432A  21 20 00            	ld	hl,LvlWidth-32
-     651   00:432D  19                  	add	hl,de
-     652   00:432E  EB                  	ex	de,hl
-     653   00:432F                      
-     654   00:432F  DD 25               	dec ixh
-     655   00:4331  C2 D5 41            	jp nz,1b
-     656   00:4334                      
-     657   00:4334  C9                  	ret
-     658   00:4335                      	
-     659   00:4335                      	
-     660   00:4335                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-     661   00:4335                      
-     662   00:4335                      ;          defb 0x02 ; Reg# 0 000000[M3][EV]
-     663   00:4335                      ;          defb 0x62 ; Reg# 1 [4/16k][BLANK][IE][M1][M2]0[SIZE][MAG]
-     664   00:4335                      ;          defb 0x06 ; Reg# 2 0000[NAME TABLE BASE ADDRESS]          = 1800h
-     665   00:4335                      
-     666   00:4335                      ;          defb 0x9F ; Reg# 3 [COLOR BASE ADDRESS]                   = 2000h ; hybrid mode for colors
-     667   00:4335                      ;          defb 0xFF ; Reg# 3 [COLOR BASE ADDRESS]                   = 2000h ; regular mode for colors
-     668   00:4335                      
-     669   00:4335                      ;          defb 0x1F ; Reg# 3 [COLOR BASE ADDRESS]                   = 0000h ; hybrid mode for colors
-     670   00:4335                      ;          defb 0x7F ; Reg# 3 [COLOR BASE ADDRESS]                   = 0000h ; regular mode for colors
-     671   00:4335                      
-     672   00:4335                      ;          defb 0x00 ; Reg# 4 00000[PATTERN GENERATOR BASE ADDRESS]  = 0000h ; hybrid mode for patterns
-     673   00:4335                      ;          defb 0x03 ; Reg# 4 00000[PATTERN GENERATOR BASE ADDRESS]  = 0000h ; regular mode for patterns
-     674   00:4335                      
-     675   00:4335                      ;          defb 0x04 ; Reg# 4 00000[PATTERN GENERATOR BASE ADDRESS]  = 2000h ; hybrid mode for patterns
-     676   00:4335                      ;          defb 0x07 ; Reg# 4 00000[PATTERN GENERATOR BASE ADDRESS]  = 2000h ; regular mode for patterns
-     677   00:4335                      
-     678   00:4335                      ;          defb 0x36 ; Reg# 5 0[SPRITE ATTRIBUTE TABLE BASE ADDRESS] = 1b00h
-     679   00:4335                      ;          defb 0x07 ; Reg# 6 00000[SPRITE PTRN GNRTR BASE ADDRESS]  = 3800h
-     680   00:4335                      ;          defb 0x01 ; Reg# 7 [TEXT COLOR 4bts][BACKDROP COLOR 4bts]
-     681   00:4335                      
-     682   00:4335                      
-     683   00:4335                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-     684   00:4335                      disp_page1:			; page 1 active
-     685   00:4335                      	_setVdp 3,0x9F	; 	colours at 0x2000	(hybrid)
-     685   00:4335  3E 9F             >     ld  a,value
-     685   00:4337  D3 99             >     out (0x99),a
-     685   00:4339  3E 83             >     ld  a,register + 0x80
-     685   00:433B  D3 99             >     out (0x99),a
-     686   00:433D                      	_setVdp 4,0x03	;	patterns at 0x0000	(regular: used 0x0800 0x1000)
-     686   00:433D  3E 03             >     ld  a,value
-     686   00:433F  D3 99             >     out (0x99),a
-     686   00:4341  3E 84             >     ld  a,register + 0x80
-     686   00:4343  D3 99             >     out (0x99),a
-     687   00:4345  C9                  	ret
-     688   00:4346                      
-     689   00:4346                      disp_page0:			; page 0 active
-     690   00:4346                      	_setVdp 3,0x1F	; 	colours at 0x0000	(hybrid)
-     690   00:4346  3E 1F             >     ld  a,value
-     690   00:4348  D3 99             >     out (0x99),a
-     690   00:434A  3E 83             >     ld  a,register + 0x80
-     690   00:434C  D3 99             >     out (0x99),a
-     691   00:434E                      	_setVdp 4,0x07	;	patterns at 0x2000	(regular: used 0x2800 0x3000)
-     691   00:434E  3E 07             >     ld  a,value
-     691   00:4350  D3 99             >     out (0x99),a
-     691   00:4352  3E 84             >     ld  a,register + 0x80
-     691   00:4354  D3 99             >     out (0x99),a
-     692   00:4356  C9                  	ret
-     693   00:4357                      
-     694   00:4357                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-     695   00:4357                      ; set pages and subslot
-     696   00:4357                      ;
-     697   00:4357                      
-     698   00:4357                      
-     699   00:4357  (00:0024)           ENASLT:         equ     024h
-     700   00:4357  (00:0138)           RSLREG:         equ     0138h
-     701   00:4357  (00:FCC1)           EXPTBL:         equ     0FCC1h  ; Bios Slot / Expansion Slot
-     702   00:4357                      
-     703   00:4357                      ; -----------------------
-     704   00:4357                      ; SEARCH_SLOTSET
-     705   00:4357                      ; Posiciona en pagina 2
-     706   00:4357                      ; Nuestro ROM.
-     707   00:4357                      ; -----------------------
-     708   00:4357                      
-     709   00:4357                      search_slotset:
-     710   00:4357  F3                  	di
-     711   00:4358  CD 6F 43            	call    search_slot
-     712   00:435B  CD 24 00            	call	ENASLT
-     713   00:435E                      	
-     714   00:435E                      	; now we have:
-     715   00:435E                      	; page 0 	- bios
-     716   00:435E                      	; page 1,2	- megarom mapper
-     717   00:435E                      	; page 3	- RAM
-     718   00:435E                      
-     719   00:435E                      	; init megarom mapper
-     720   00:435E  AF                  	xor	a
-     721   00:435F  32 00 50            	ld	(_bank1),a
-     722   00:4362  3C                  	inc	a
-     723   00:4363  32 00 70            	ld	(_bank2),a
-     724   00:4366  3C                  	inc	a
-     725   00:4367  32 00 90            	ld	(_bank3),a
-     726   00:436A  3C                  	inc	a
-     727   00:436B  32 00 B0            	ld	(_bank4),a
-     728   00:436E                      
-     729   00:436E  C9                  	ret
-     730   00:436F                      
-     731   00:436F                      
-     732   00:436F                      ; -----------------------
-     733   00:436F                      ; SEARCH_SLOT
-     734   00:436F                      ; Busca slot de nuestro rom
-     735   00:436F                      ; -----------------------
-     736   00:436F                      
-     737   00:436F                      search_slot:
-     738   00:436F  CD 38 01            	call    RSLREG
-     739   00:4372  0F                  	rrca
-     740   00:4373  0F                  	rrca
-     741   00:4374  E6 03               	and     3
-     742   00:4376  4F                  	ld      c,a
-     743   00:4377  06 00               	ld      b,0
-     744   00:4379  21 C1 FC            	ld      hl,EXPTBL
-     745   00:437C  09                  	add     hl,bc
-     746   00:437D  7E                  	ld      a,(hl)
-     747   00:437E  E6 80               	and     080h
-     748   00:4380  B1                  	or      c
-     749   00:4381  4F                  	ld      c,a
-     750   00:4382  23                  	inc     hl
-     751   00:4383  23                  	inc     hl
-     752   00:4384  23                  	inc     hl
-     753   00:4385  23                  	inc     hl
-     754   00:4386  7E                  	ld      a,(hl)
-     755   00:4387  E6 0C               	and     0Ch
-     756   00:4389  B1                  	or      c;
-     757   00:438A  26 80               	ld      h,080h
-     758   00:438C  32 00 E0            	ld      (slotvar),a
-     759   00:438F  C9                  	ret
-     760   00:4390                      
-     761   00:4390                      ; ------------------------------
-     762   00:4390                      ; SETROMPAGE0
-     763   00:4390                      ; Posiciona nuestro cartucho en
-     764   00:4390                      ; Pagina 0
-     765   00:4390                      ; -----------------------------
-     766   00:4390                      
-     767   00:4390                      setrompage0:
-     768   00:4390  3A 00 E0            	ld      a,(slotvar)
-     769   00:4393  18 03               	jr      setslotpage0
-     770   00:4395                      
-     771   00:4395                      ; ------------------------------
-     772   00:4395                      ; RECBIOS
-     773   00:4395                      ; Posiciona la bios ROM
-     774   00:4395                      ; -------------------------------
-     775   00:4395                      recbios:
-     776   00:4395  3A C1 FC            	ld      a,(EXPTBL)
-     777   00:4398                      
-     778   00:4398                      ; ---------------------------
-     779   00:4398                      ; SETSLOTPAGE0
-     780   00:4398                      ; Posiciona el slot pasado
-     781   00:4398                      ; en pagina 0 del Z80
-     782   00:4398                      ; A: Formato FxxxSSPP
-     783   00:4398                      ; ----------------------------
-     784   00:4398                      
-     785   00:4398                      setslotpage0:
-     786   00:4398  F3                  	di
-     787   00:4399  47                  	ld      b,a                 ; B = Slot param in FxxxSSPP format
-     788   00:439A                      
-     789   00:439A  DB A8               	in      a,(0A8h)
-     790   00:439C  E6 FC               	and     0xFC
-     791   00:439E  57                  	ld      d,a                 ; D = Primary slot value
-     792   00:439F                      
-     793   00:439F  78                  	ld      a,b
-     794   00:43A0                      
-     795   00:43A0  E6 03               	and     3
-     796   00:43A2  B2                  	or      d
-     797   00:43A3  57                  	ld      d,a                 ; D = Final Value for primary slot
-     798   00:43A4                      
-     799   00:43A4                      	; Check if expanded
-     800   00:43A4  78                  	ld      a,b
-     801   00:43A5  CB 7F               	bit     7,a
-     802   00:43A7  28 21               	jr      z,1f    ; Not Expanded
-     803   00:43A9                      
-     804   00:43A9  E6 03               	and     3
-     805   00:43AB  0F                  	rrca
-     806   00:43AC  0F                  	rrca
-     807   00:43AD  E6 C0               	and     0xC0
-     808   00:43AF  4F                  	ld      c,a
-     809   00:43B0  7A                  	ld      a,d
-     810   00:43B1  E6 3F               	and     0x3F
-     811   00:43B3  B1                  	or      c
-     812   00:43B4  4F                  	ld      c,a                 ; Primary slot value with main slot in page 3
-     813   00:43B5                      
-     814   00:43B5  78                  	ld      a,b
-     815   00:43B6  E6 0C               	and     0x0C
-     816   00:43B8  0F                  	rrca
-     817   00:43B9  0F                  	rrca
-     818   00:43BA  E6 03               	and     3
-     819   00:43BC  47                  	ld      b,a                 ; B = Expanded slot in page 3
-     820   00:43BD  79                  	ld      a,c
-     821   00:43BE  D3 A8               	out     (0A8h),a            ; Slot : Main Slot, xx, xx, Main slot
-     822   00:43C0  3A FF FF            	ld      a,(0FFFFh)
-     823   00:43C3  2F                  	cpl
-     824   00:43C4  E6 FC               	and     0xFC
-     825   00:43C6  B0                  	or      b
-     826   00:43C7  32 FF FF            	ld      (0FFFFh),a          ; Expanded slot selected
-     827   00:43CA                      
-     828   00:43CA                      1:
-     829   00:43CA  7A                  	ld      a,d             ; A = Final value
-     830   00:43CB  D3 A8               	out     (0A8h),a		; Slot Final. Ram, rom c, rom c, Main
-     831   00:43CD  C9                  	ret
-     832   00:43CE                      	
-     833   00:43CE                      
-     834   00:43CE                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-     835   00:43CE                      ;
-     836   00:43CE                      ;   load tile sets and sprites
-     837   00:43CE                      vram_init:
-     838   00:43CE                      	setvdpwvram 0x1B80              ; sprites in the scorebar
-     838   00:43CE  F3                >     di
-     838   00:43CF                    >     _setvdpwvram value
-     838   00:43CF                    >     if (value & 0xFF)
-     838   00:43CF  3E 80             >         ld  a,value & 0xFF
-     838   00:43D1                    >     else
-     838   00:43D1                    ~         xor a
-     838   00:43D1                    ~     endif
-     838   00:43D1  D3 99             >     out (0x99),a
-     838   00:43D3  3E 5B             >     ld  a,0x40 + (value/256)
-     838   00:43D5  D3 99             >     out (0x99),a
-     838   00:43D7  FB                >     ei
-     839   00:43D8  21 00 A4            	ld  hl,scorebar_sat
-     840   00:43DB  3E 03               	ld	a,:scorebar_sat
-     841   00:43DD  CD 52 40            	call    write_256
-     842   00:43E0                      
-     843   00:43E0                      	setvdpwvram 0x1C00
-     843   00:43E0  F3                >     di
-     843   00:43E1                    >     _setvdpwvram value
-     843   00:43E1                    >     if (value & 0xFF)
-     843   00:43E1                    ~         ld  a,value & 0xFF
-     843   00:43E1                    ~     else
-     843   00:43E1  AF                >         xor a
-     843   00:43E2                    >     endif
-     843   00:43E2  D3 99             >     out (0x99),a
-     843   00:43E4  3E 5C             >     ld  a,0x40 + (value/256)
-     843   00:43E6  D3 99             >     out (0x99),a
-     843   00:43E8  FB                >     ei
-     844   00:43E9  21 00 A0            	ld  hl,tileset					; dummy tile set from basic rom
-     845   00:43EC  3E 03               	ld	a,:tileset
-     846   00:43EE  CD 52 40            	call    write_256
-     847   00:43F1                      
-     848   00:43F1                      	setvdpwvram 0x1800				;   dummy PNT
-     848   00:43F1  F3                >     di
-     848   00:43F2                    >     _setvdpwvram value
-     848   00:43F2                    >     if (value & 0xFF)
-     848   00:43F2                    ~         ld  a,value & 0xFF
-     848   00:43F2                    ~     else
-     848   00:43F2  AF                >         xor a
-     848   00:43F3                    >     endif
-     848   00:43F3  D3 99             >     out (0x99),a
-     848   00:43F5  3E 58             >     ld  a,0x40 + (value/256)
-     848   00:43F7  D3 99             >     out (0x99),a
-     848   00:43F9  FB                >     ei
-     849   00:43FA  06 00               	ld	b,0
-     850   00:43FC  3E 00               	ld	a,0
-     851   00:43FE  D3 98               1:	out (0x98),a
-     852   00:4400  04                  	inc	b
-     853   00:4401  20 FB               	jr	nz,1b
-     854   00:4403                      
-     855   00:4403                      	setvdpwvram 0x1BD0
-     855   00:4403  F3                >     di
-     855   00:4404                    >     _setvdpwvram value
-     855   00:4404                    >     if (value & 0xFF)
-     855   00:4404  3E D0             >         ld  a,value & 0xFF
-     855   00:4406                    >     else
-     855   00:4406                    ~         xor a
-     855   00:4406                    ~     endif
-     855   00:4406  D3 99             >     out (0x99),a
-     855   00:4408  3E 5B             >     ld  a,0x40 + (value/256)
-     855   00:440A  D3 99             >     out (0x99),a
-     855   00:440C  FB                >     ei
-     856   00:440D  06 10               	ld	b,16				; 	dummy colors
-     857   00:440F  3E 11               	ld	a,11h
-     858   00:4411  D3 98               1:	out (0x98),a
-     859   00:4413  05                  	dec	b
-     860   00:4414  20 FB               	jr	nz,1b
-     861   00:4416  C9                  	ret
-     862   00:4417                      
-     863   00:4417                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-     864   00:4417                      ; ROM initialisation
-     865   00:4417                      
-     866   00:4417                      initmain:
-     867   00:4417                      	
-     868   00:4417  CD 1B 40            	call _scr2				; screen 2
-     869   00:441A                      	
-     870   00:441A  CD 57 43            	call 	search_slotset	; now the first 32KB of the megarom are active
-     871   00:441D                      			
-     872   00:441D                      	;call	setrompage0		; 48K of rom are active - bios is excluded
-     873   00:441D                      	
-     874   00:441D                      	_setVdp 7,0
-     874   00:441D  3E 00             >     ld  a,value
-     874   00:441F  D3 99             >     out (0x99),a
-     874   00:4421  3E 87             >     ld  a,register + 0x80
-     874   00:4423  D3 99             >     out (0x99),a
-     875   00:4425  FB                  	ei
-     876   00:4426  CD 29 40            	call	set_sprites
-     877   00:4429  CD CE 43            	call 	vram_init		; set data in the top 3d of the screen
-     878   00:442C                      	
-     879   00:442C  CD 64 40            	call	initcommontiles		;	load common tiles
-     880   00:442F                      	
-     881   00:442F                      	; move meta map in ram
-     882   00:442F  3E 06               	ld	a,:metamap
-     883   00:4431  32 00 B0            	ld	(_bank4),a
-     884   00:4434  01 C0 13            	ld	bc,LvlWidth*LvlHeigh
-     885   00:4437  21 00 A0            	ld	hl,metamap
-     886   00:443A  11 00 C0            	ld	de,buffer
-     887   00:443D  ED B0               	ldir
-     888   00:443F                      
-     889   00:443F  21 00 80            	ld	hl,myisr
-     890   00:4442  22 9B FD            	ld	(0xFD9A+1),hl
-     891   00:4445  3E C3               	ld	a,0xC3
-     892   00:4447  32 9A FD            	ld	(0xFD9A),a
-     893   00:444A                      
-     894   00:444A  21 00 00            	ld	hl,0
-     895   00:444D  22 02 E0            	ld	(xmap),hl
-     896   00:4450  22 04 E0            	ld	(ymap),hl
-     897   00:4453  AF                  	xor a
-     898   00:4454  32 06 E0            	ld	(dxmap),a
-     899   00:4457  32 07 E0            	ld	(dymap),a
-     900   00:445A  32 08 E0            	ld	(phase),a
-     901   00:445D  3C                  	inc	a
-     902   00:445E  32 09 E0            	ld	(vpage),a
-     903   00:4461                      	
-     904   00:4461                      
-     905   00:4461                      mainloop:
-     906   00:4461                      
-     907   00:4461                      	; setVdp 7,2	
-     908   00:4461  76                  	halt
-     909   00:4462                      	; setVdp 7,8
-     910   00:4462  CD 8E 44            	call	show_activepage
-     911   00:4465  CD A5 41            	call    plot_pnt		;	use phase to plot the correct PNT
-     912   00:4468                      	; setVdp 7,0
-     913   00:4468                      	
-     914   00:4468  CD 10 45            	call	sub_main		; 	compute new "phase"
-     915   00:446B                      
-     916   00:446B                      	; setVdp 7,2	
-     917   00:446B  76                  	halt
-     918   00:446C                      	setVdp 7,10
-     918   00:446C  F3                >     di
-     918   00:446D                    >     _setVdp register,value
-     918   00:446D  3E 0A             >     ld  a,value
-     918   00:446F  D3 99             >     out (0x99),a
-     918   00:4471  3E 87             >     ld  a,register + 0x80
-     918   00:4473  D3 99             >     out (0x99),a
-     918   00:4475  FB                >     ei
-     919   00:4476  CD B1 40            	call	setvramp		;	use phase to select the tileset loaded to page 1/0
-     920   00:4479                      	setVdp 7,0
-     920   00:4479  F3                >     di
-     920   00:447A                    >     _setVdp register,value
-     920   00:447A  3E 00             >     ld  a,value
-     920   00:447C  D3 99             >     out (0x99),a
-     920   00:447E  3E 87             >     ld  a,register + 0x80
-     920   00:4480  D3 99             >     out (0x99),a
-     920   00:4482  FB                >     ei
-     921   00:4483                      		
-     922   00:4483  3A 09 E0            	ld	a,(vpage)
-     923   00:4486  EE 01               	xor 1				; 	swap page
-     924   00:4488  32 09 E0            	ld	(vpage),a			
-     925   00:448B                      		
-     926   00:448B  C3 61 44            	jp 	mainloop
-     927   00:448E                      	
-     928   00:448E                      	
-     929   00:448E                      show_activepage:	
-     930   00:448E  3A 09 E0            	ld  a,(vpage)	
-     931   00:4491  A7                  	and a
-     932   00:4492  CA A8 44            	jp  z,.page0
-     933   00:4495                      .page1:				; 	page 1 active
-     934   00:4495  F3                  	di
-     935   00:4496                      	_setVdp 3,0x9F	; 	PCT at 0x2000	(hybrid)
-     935   00:4496  3E 9F             >     ld  a,value
-     935   00:4498  D3 99             >     out (0x99),a
-     935   00:449A  3E 83             >     ld  a,register + 0x80
-     935   00:449C  D3 99             >     out (0x99),a
-     936   00:449E                      	_setVdp 4,0x03	;	PGT at 0x0000	(regular: used 0x0800 0x1000)
-     936   00:449E  3E 03             >     ld  a,value
-     936   00:44A0  D3 99             >     out (0x99),a
-     936   00:44A2  3E 84             >     ld  a,register + 0x80
-     936   00:44A4  D3 99             >     out (0x99),a
-     937   00:44A6  FB                  	ei
-     938   00:44A7  C9                  	ret
-     939   00:44A8                      .page0:				; 	page 0 active
-     940   00:44A8  F3                  	di
-     941   00:44A9                      	_setVdp 3,0x1F	; 	PCT at 0x0000	(hybrid)
-     941   00:44A9  3E 1F             >     ld  a,value
-     941   00:44AB  D3 99             >     out (0x99),a
-     941   00:44AD  3E 83             >     ld  a,register + 0x80
-     941   00:44AF  D3 99             >     out (0x99),a
-     942   00:44B1                      	_setVdp 4,0x07	;	PGT at 0x2000	(regular: used 0x2800 0x3000)
-     942   00:44B1  3E 07             >     ld  a,value
-     942   00:44B3  D3 99             >     out (0x99),a
-     942   00:44B5  3E 84             >     ld  a,register + 0x80
-     942   00:44B7  D3 99             >     out (0x99),a
-     943   00:44B9  FB                  	ei
-     944   00:44BA  C9                  	ret
-     945   00:44BB                      	
-     946   00:44BB                      dxdycontrol:
-     947   00:44BB  7D                  	ld  a,l
-     948   00:44BC  E6 80               	and 0x80    ; right
-     949   00:44BE  20 0C               	jr  nz,1f
-     950   00:44C0  3A 06 E0            	ld  a,(dxmap)
-     951   00:44C3  FE 80               	cp  maxspeed        ; MAX SPEED
-     952   00:44C5  28 05               	jr  z,1f
-     953   00:44C7  C6 01               	add a,maxspeedstep
-     954   00:44C9  32 06 E0            	ld  (dxmap),a
-     955   00:44CC                      1:
-     956   00:44CC  7D                  	ld  a,l
-     957   00:44CD  E6 10               	and 0x10    ; left
-     958   00:44CF  20 0C               	jr  nz,1f
-     959   00:44D1  3A 06 E0            	ld  a,(dxmap)
-     960   00:44D4  FE 80               	cp  -maxspeed       ; MAX SPEED
-     961   00:44D6  28 05               	jr  z,1f
-     962   00:44D8  C6 FF               	add a,-maxspeedstep
-     963   00:44DA  32 06 E0            	ld  (dxmap),a
-     964   00:44DD                      1:
-     965   00:44DD                      	; y position
-     966   00:44DD  7D                  	ld  a,l
-     967   00:44DE  E6 20               	and 0x20    ; up
-     968   00:44E0  20 0C               	jr  nz,1f
-     969   00:44E2  3A 07 E0            	ld  a,(dymap)
-     970   00:44E5  FE 80               	cp  -maxspeed        ; MAX SPEED
-     971   00:44E7  28 05               	jr  z,1f
-     972   00:44E9  C6 FF               	add a,-maxspeedstep
-     973   00:44EB  32 07 E0            	ld  (dymap),a
-     974   00:44EE                      1:
-     975   00:44EE  7D                  	ld  a,l
-     976   00:44EF  E6 40               	and 0x40    ; down
-     977   00:44F1  20 0C               	jr  nz,1f
-     978   00:44F3  3A 07 E0            	ld  a,(dymap)
-     979   00:44F6  FE 80               	cp  maxspeed       ; MAX SPEED
-     980   00:44F8  28 05               	jr  z,1f
-     981   00:44FA  C6 01               	add a,maxspeedstep
-     982   00:44FC  32 07 E0            	ld  (dymap),a
-     983   00:44FF                      1:
-     984   00:44FF  C9                  	ret
-     985   00:4500                      
-     986   00:4500                      stopx:
-     987   00:4500  AF                  	xor	a
-     988   00:4501  32 06 E0            	ld  (dxmap),a
-     989   00:4504  21 00 00            	ld	hl,0
-     990   00:4507  C9                  	ret
-     991   00:4508                      stopy:
-     992   00:4508  AF                  	xor	a
-     993   00:4509  32 07 E0            	ld  (dymap),a
-     994   00:450C  21 00 00            	ld	hl,0
-     995   00:450F  C9                  	ret
-     996   00:4510                      
-     997   00:4510                      sub_main:
-     998   00:4510                      	; x speed control
-     999   00:4510  1E 08               	ld  e,8
-    1000   00:4512  CD 10 40            	call    checkkbd
-    1001   00:4515  CD BB 44            	call	dxdycontrol
-    1002   00:4518                      
-    1003   00:4518  ED 5B 02 E0         	ld  de,(xmap)		; FP 4.4
-    1004   00:451C  3A 06 E0            	ld  a,(dxmap)
-    1005   00:451F  6F                  	ld  l,a
-    1006   00:4520  87                  	add a,a
-    1007   00:4521  9F                  	sbc a,a
-    1008   00:4522  67                  	ld  h,a
-    1009   00:4523  29 29 29 29         [4]	add	hl,hl
-    1010   00:4527  A7                  	and a
-    1011   00:4528  ED 5A               	adc hl,de
-    1012   00:452A  FC 00 45            	call	m,stopx
-    1013   00:452D  11 C0 1F            	ld	de,(LvlWidth-32)*256-64
-    1014   00:4530  A7                  	and a
-    1015   00:4531  ED 52               	sbc	hl,de
-    1016   00:4533  F4 00 45            	call	p,stopx
-    1017   00:4536  19                  	add	hl,de
-    1018   00:4537  22 02 E0            	ld  (xmap),hl
-    1019   00:453A                      
-    1020   00:453A  ED 5B 04 E0         	ld  de,(ymap)		; FP 4.4
-    1021   00:453E  3A 07 E0            	ld  a,(dymap)
-    1022   00:4541  6F                  	ld  l,a
-    1023   00:4542  87                  	add a,a
-    1024   00:4543  9F                  	sbc a,a
-    1025   00:4544  67                  	ld  h,a
-    1026   00:4545  29 29 29 29         [4]	add	hl,hl
-    1027   00:4549  A7                  	and	a
-    1028   00:454A  ED 5A               	adc hl,de
-    1029   00:454C  FC 08 45            	call	m,stopy
-    1030   00:454F  11 C0 3E            	ld	de,(LvlHeigh-16)*256-64
-    1031   00:4552  A7                  	and a
-    1032   00:4553  ED 52               	sbc	hl,de
-    1033   00:4555  F4 08 45            	call	p,stopy
-    1034   00:4558  19                  	add	hl,de
-    1035   00:4559  22 04 E0            	ld  (ymap),hl
-    1036   00:455C                      
-    1037   00:455C                      
-    1038   00:455C  3A 02 E0            	ld	a,(xmap)	; xmap 8.8
-    1039   00:455F  07 07               [2]	rlca
-    1040   00:4561  E6 03               	and		%00000011
-    1041   00:4563  47                  	ld	b,a
-    1042   00:4564  3A 04 E0            	ld	a,(ymap)	; ymap 8.8
-    1043   00:4567  07 07 07 07         [4]	rlca
-    1044   00:456B  E6 0C               	and		%00001100
-    1045   00:456D  B0                  	or	b
-    1046   00:456E  32 08 E0            	ld	(phase),a
-    1047   00:4571  C9                  	ret
-    1048   00:4572                      
-    1049   00:4572                      
-    1050   00:4572                      
-    1051   00:4572                      
+     539   00:4189  CA 8D 41            	jp	z,1f
+     540   00:418C  14                  	inc	d
+     541   00:418D                      1:	
+     542   00:418D  43                  	ld	b,e
+     543   00:418E  ED A3               2:	outi
+     544   00:4190  C2 8E 41            	jp	nz,2b
+     545   00:4193  15                  	dec	d
+     546   00:4194  C2 8E 41            	jp nz,2b	
+     547   00:4197  FB                  	ei
+     548   00:4198  C9                  	ret
+     549   00:4199                      
+     550   00:4199                      	
+     551   00:4199                      	; ld	a,d
+     552   00:4199                      	; and	a
+     553   00:4199                      	; call	nz,3f
+     554   00:4199                      	; ld	a,e
+     555   00:4199                      	; and	a
+     556   00:4199                      	; jp	z,4f
+     557   00:4199                      	; ld	b,e
+     558   00:4199                      ; 2:	outi
+     559   00:4199                      	; jp	nz,2b
+     560   00:4199                      ; 4:	ei
+     561   00:4199                      	; ret
+     562   00:4199                      	
+     563   00:4199                      ; 3:	ld	b,0
+     564   00:4199                      ; 2:	outi
+     565   00:4199                      	; jp	nz,2b
+     566   00:4199                      	; dec	d
+     567   00:4199                      	; jp nz,2b	
+     568   00:4199                      	; ret
+     569   00:4199                      
+     570   00:4199                      
+     571   00:4199                      		
+     572   00:4199                      ; write_2k:
+     573   00:4199                      	; push hl
+     574   00:4199                      	; ex	de,hl
+     575   00:4199                      	; set	6,h
+     576   00:4199                      	; ld	c,0x99
+     577   00:4199                      	; ld	de,8
+     578   00:4199                      	; exx
+     579   00:4199                      	; pop	hl		; ram source in HL'
+     580   00:4199                      	; ld	c,0x98	; data port in c'
+     581   00:4199                      ; 2:	di
+     582   00:4199                      	; exx
+     583   00:4199                      	; out (c),l
+     584   00:4199                      	; out (c),h	;c = 0x99, HL with write setup bit set
+     585   00:4199                      	; add hl,de	;de = 8
+     586   00:4199                      	; exx
+     587   00:4199                      	; ld b,8
+     588   00:4199                      ; 1:	outi		;c' = 0x98
+     589   00:4199                      	; jp nz,1b
+     590   00:4199                      	; ei
+     591   00:4199                      	; dec a
+     592   00:4199                      	; jp nz,2b
+     593   00:4199                      	; ret
+     594   00:4199                      
+     595   00:4199                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     596   00:4199                      ;	in xmap,ymap,phase
+     597   00:4199                      ;
+     598   00:4199                      plot_pnt:
+     599   00:4199  3E 07               	ld	a,:metavec
+     600   00:419B  32 00 B0            	ld	(_bank4),a
+     601   00:419E                      
+     602   00:419E  21 00 C0            	ld	hl,buffer	; meta map in ram
+     603   00:41A1                      
+     604   00:41A1  3A 05 E0            	ld	a,(ymap+1)	; ymap 8.8
+     605   00:41A4  A7                  	and	a
+     606   00:41A5  28 07               	jr	z,1f
+     607   00:41A7  01 40 00            	ld	bc,LvlWidth
+     608   00:41AA  09                  2:	add	hl,bc
+     609   00:41AB  3D                  	dec a
+     610   00:41AC  20 FC               	jr	nz,2b
+     611   00:41AE                      1:
+     612   00:41AE  3A 03 E0            	ld	a,(xmap+1)	; xmap 8.8
+     613   00:41B1  5F                  	ld	e,a
+     614   00:41B2  16 00               	ld	d,0
+     615   00:41B4  19                  	add	hl,de
+     616   00:41B5  EB                  	ex	de,hl		; DE = buffer + round(ymap)*LvlWidth+round(xmap)
+     617   00:41B6                      
+     618   00:41B6                      	setvdpwvram 0x1900
+     618   00:41B6  F3                >     di
+     618   00:41B7                    >     _setvdpwvram value
+     618   00:41B7                    >     if (value & 0xFF)
+     618   00:41B7                    ~         ld  a,value & 0xFF
+     618   00:41B7                    ~     else
+     618   00:41B7  AF                >         xor a
+     618   00:41B8                    >     endif
+     618   00:41B8  D3 99             >     out (0x99),a
+     618   00:41BA  3E 59             >     ld  a,0x40 + (value/256)
+     618   00:41BC  D3 99             >     out (0x99),a
+     618   00:41BE  FB                >     ei
+     619   00:41BF                      	
+     620   00:41BF  0E 98               	ld  c,0x98
+     621   00:41C1  DD 26 10            	ld  ixh,16
+     622   00:41C4                      
+     623   00:41C4  3A 08 E0            	ld	a,(phase)
+     624   00:41C7  C6 A0               	add	a,metavec/256
+     625   00:41C9                      	
+     626   00:41C9                      1:	
+     627   00:41C9  67                  	ld	h,a
+     628   00:41CA  08                  	ex	af',af
+     629   00:41CB                      	
+     630   00:41CB  7B                  	ld  a,e
+     631   00:41CC  C6 20               	add a,32
+     632   00:41CE  D2 7D 42            	jp  nc,.fast_loop
+     633   00:41D1                      
+     634   00:41D1                      	
+     635   00:41D1                      	repeat 32
+     636   00:41D1                    < 	ld	a,(de)
+     637   00:41D1                    < 	ld	l,a
+     638   00:41D1                    < 	outi         	; Send data pointed by HL to VDP port (reg.C preloaded)
+     639   00:41D1                    < 	inc	de
+     640   00:41D1                    < 	endrepeat
+     640   00:41D1  1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 
+     640   00:41E1  6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F 
+     640   00:41F1  ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED 
+     640   00:4201  A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 
+     640   00:4211  13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 
+     640   00:4221  1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 
+     640   00:4231  6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F 
+     640   00:4241  ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED 
+     640   00:4251  A3 13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 
+     640   00:4261  13 1A 6F ED A3 13 1A 6F ED A3 13 1A 6F ED A3 13 
+     641   00:4271                      	
+     642   00:4271  08                  	ex	af',af
+     643   00:4272                      	
+     644   00:4272  21 20 00            	ld	hl,LvlWidth-32
+     645   00:4275  19                  	add	hl,de
+     646   00:4276  EB                  	ex	de,hl
+     647   00:4277                      
+     648   00:4277  DD 25               	dec ixh
+     649   00:4279  C2 C9 41            	jp nz,1b
+     650   00:427C                      
+     651   00:427C  C9                  	ret
+     652   00:427D                      
+     653   00:427D                      .fast_loop
+     654   00:427D                      
+     655   00:427D                      	repeat 32
+     656   00:427D                    < 	ld	a,(de)
+     657   00:427D                    < 	ld	l,a
+     658   00:427D                    < 	outi         	; Send data pointed by HL to VDP port (reg.C preloaded)
+     659   00:427D                    < 	inc	e			; save 32 INC DE 
+     660   00:427D                    < 	endrepeat
+     660   00:427D  1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 
+     660   00:428D  6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F 
+     660   00:429D  ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED 
+     660   00:42AD  A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 
+     660   00:42BD  1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 
+     660   00:42CD  1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 
+     660   00:42DD  6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F 
+     660   00:42ED  ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED 
+     660   00:42FD  A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 
+     660   00:430D  1C 1A 6F ED A3 1C 1A 6F ED A3 1C 1A 6F ED A3 1C 
+     661   00:431D                      	
+     662   00:431D  08                  	ex	af',af
+     663   00:431E                      	
+     664   00:431E  21 20 00            	ld	hl,LvlWidth-32
+     665   00:4321  19                  	add	hl,de
+     666   00:4322  EB                  	ex	de,hl
+     667   00:4323                      
+     668   00:4323  DD 25               	dec ixh
+     669   00:4325  C2 C9 41            	jp nz,1b
+     670   00:4328                      
+     671   00:4328  C9                  	ret
+     672   00:4329                      	
+     673   00:4329                      	
+     674   00:4329                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     675   00:4329                      
+     676   00:4329                      ;          defb 0x02 ; Reg# 0 000000[M3][EV]
+     677   00:4329                      ;          defb 0x62 ; Reg# 1 [4/16k][BLANK][IE][M1][M2]0[SIZE][MAG]
+     678   00:4329                      ;          defb 0x06 ; Reg# 2 0000[NAME TABLE BASE ADDRESS]          = 1800h
+     679   00:4329                      
+     680   00:4329                      ;          defb 0x9F ; Reg# 3 [COLOR BASE ADDRESS]                   = 2000h ; hybrid mode for colors
+     681   00:4329                      ;          defb 0xFF ; Reg# 3 [COLOR BASE ADDRESS]                   = 2000h ; regular mode for colors
+     682   00:4329                      
+     683   00:4329                      ;          defb 0x1F ; Reg# 3 [COLOR BASE ADDRESS]                   = 0000h ; hybrid mode for colors
+     684   00:4329                      ;          defb 0x7F ; Reg# 3 [COLOR BASE ADDRESS]                   = 0000h ; regular mode for colors
+     685   00:4329                      
+     686   00:4329                      ;          defb 0x00 ; Reg# 4 00000[PATTERN GENERATOR BASE ADDRESS]  = 0000h ; hybrid mode for patterns
+     687   00:4329                      ;          defb 0x03 ; Reg# 4 00000[PATTERN GENERATOR BASE ADDRESS]  = 0000h ; regular mode for patterns
+     688   00:4329                      
+     689   00:4329                      ;          defb 0x04 ; Reg# 4 00000[PATTERN GENERATOR BASE ADDRESS]  = 2000h ; hybrid mode for patterns
+     690   00:4329                      ;          defb 0x07 ; Reg# 4 00000[PATTERN GENERATOR BASE ADDRESS]  = 2000h ; regular mode for patterns
+     691   00:4329                      
+     692   00:4329                      ;          defb 0x36 ; Reg# 5 0[SPRITE ATTRIBUTE TABLE BASE ADDRESS] = 1b00h
+     693   00:4329                      ;          defb 0x07 ; Reg# 6 00000[SPRITE PTRN GNRTR BASE ADDRESS]  = 3800h
+     694   00:4329                      ;          defb 0x01 ; Reg# 7 [TEXT COLOR 4bts][BACKDROP COLOR 4bts]
+     695   00:4329                      
+     696   00:4329                      
+     697   00:4329                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     698   00:4329                      disp_page1:			; page 1 active
+     699   00:4329                      	_setVdp 3,0x9F	; 	colours at 0x2000	(hybrid)
+     699   00:4329  3E 9F             >     ld  a,value
+     699   00:432B  D3 99             >     out (0x99),a
+     699   00:432D  3E 83             >     ld  a,register + 0x80
+     699   00:432F  D3 99             >     out (0x99),a
+     700   00:4331                      	_setVdp 4,0x03	;	patterns at 0x0000	(regular: used 0x0800 0x1000)
+     700   00:4331  3E 03             >     ld  a,value
+     700   00:4333  D3 99             >     out (0x99),a
+     700   00:4335  3E 84             >     ld  a,register + 0x80
+     700   00:4337  D3 99             >     out (0x99),a
+     701   00:4339  C9                  	ret
+     702   00:433A                      
+     703   00:433A                      disp_page0:			; page 0 active
+     704   00:433A                      	_setVdp 3,0x1F	; 	colours at 0x0000	(hybrid)
+     704   00:433A  3E 1F             >     ld  a,value
+     704   00:433C  D3 99             >     out (0x99),a
+     704   00:433E  3E 83             >     ld  a,register + 0x80
+     704   00:4340  D3 99             >     out (0x99),a
+     705   00:4342                      	_setVdp 4,0x07	;	patterns at 0x2000	(regular: used 0x2800 0x3000)
+     705   00:4342  3E 07             >     ld  a,value
+     705   00:4344  D3 99             >     out (0x99),a
+     705   00:4346  3E 84             >     ld  a,register + 0x80
+     705   00:4348  D3 99             >     out (0x99),a
+     706   00:434A  C9                  	ret
+     707   00:434B                      
+     708   00:434B                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     709   00:434B                      ; set pages and subslot
+     710   00:434B                      ;
+     711   00:434B                      
+     712   00:434B                      
+     713   00:434B  (00:0024)           ENASLT:         equ     024h
+     714   00:434B  (00:0138)           RSLREG:         equ     0138h
+     715   00:434B  (00:FCC1)           EXPTBL:         equ     0FCC1h  ; Bios Slot / Expansion Slot
+     716   00:434B                      
+     717   00:434B                      ; -----------------------
+     718   00:434B                      ; SEARCH_SLOTSET
+     719   00:434B                      ; Posiciona en pagina 2
+     720   00:434B                      ; Nuestro ROM.
+     721   00:434B                      ; -----------------------
+     722   00:434B                      
+     723   00:434B                      search_slotset:
+     724   00:434B  F3                  	di
+     725   00:434C  CD 63 43            	call    search_slot
+     726   00:434F  CD 24 00            	call	ENASLT
+     727   00:4352                      	
+     728   00:4352                      	; now we have:
+     729   00:4352                      	; page 0 	- bios
+     730   00:4352                      	; page 1,2	- megarom mapper
+     731   00:4352                      	; page 3	- RAM
+     732   00:4352                      
+     733   00:4352                      	; init megarom mapper
+     734   00:4352  AF                  	xor	a
+     735   00:4353  32 00 50            	ld	(_bank1),a
+     736   00:4356  3C                  	inc	a
+     737   00:4357  32 00 70            	ld	(_bank2),a
+     738   00:435A  3C                  	inc	a
+     739   00:435B  32 00 90            	ld	(_bank3),a
+     740   00:435E  3C                  	inc	a
+     741   00:435F  32 00 B0            	ld	(_bank4),a
+     742   00:4362                      
+     743   00:4362  C9                  	ret
+     744   00:4363                      
+     745   00:4363                      
+     746   00:4363                      ; -----------------------
+     747   00:4363                      ; SEARCH_SLOT
+     748   00:4363                      ; Busca slot de nuestro rom
+     749   00:4363                      ; -----------------------
+     750   00:4363                      
+     751   00:4363                      search_slot:
+     752   00:4363  CD 38 01            	call    RSLREG
+     753   00:4366  0F                  	rrca
+     754   00:4367  0F                  	rrca
+     755   00:4368  E6 03               	and     3
+     756   00:436A  4F                  	ld      c,a
+     757   00:436B  06 00               	ld      b,0
+     758   00:436D  21 C1 FC            	ld      hl,EXPTBL
+     759   00:4370  09                  	add     hl,bc
+     760   00:4371  7E                  	ld      a,(hl)
+     761   00:4372  E6 80               	and     080h
+     762   00:4374  B1                  	or      c
+     763   00:4375  4F                  	ld      c,a
+     764   00:4376  23                  	inc     hl
+     765   00:4377  23                  	inc     hl
+     766   00:4378  23                  	inc     hl
+     767   00:4379  23                  	inc     hl
+     768   00:437A  7E                  	ld      a,(hl)
+     769   00:437B  E6 0C               	and     0Ch
+     770   00:437D  B1                  	or      c;
+     771   00:437E  26 80               	ld      h,080h
+     772   00:4380  32 00 E0            	ld      (slotvar),a
+     773   00:4383  C9                  	ret
+     774   00:4384                      
+     775   00:4384                      ; ------------------------------
+     776   00:4384                      ; SETROMPAGE0
+     777   00:4384                      ; Posiciona nuestro cartucho en
+     778   00:4384                      ; Pagina 0
+     779   00:4384                      ; -----------------------------
+     780   00:4384                      
+     781   00:4384                      setrompage0:
+     782   00:4384  3A 00 E0            	ld      a,(slotvar)
+     783   00:4387  18 03               	jr      setslotpage0
+     784   00:4389                      
+     785   00:4389                      ; ------------------------------
+     786   00:4389                      ; RECBIOS
+     787   00:4389                      ; Posiciona la bios ROM
+     788   00:4389                      ; -------------------------------
+     789   00:4389                      recbios:
+     790   00:4389  3A C1 FC            	ld      a,(EXPTBL)
+     791   00:438C                      
+     792   00:438C                      ; ---------------------------
+     793   00:438C                      ; SETSLOTPAGE0
+     794   00:438C                      ; Posiciona el slot pasado
+     795   00:438C                      ; en pagina 0 del Z80
+     796   00:438C                      ; A: Formato FxxxSSPP
+     797   00:438C                      ; ----------------------------
+     798   00:438C                      
+     799   00:438C                      setslotpage0:
+     800   00:438C  F3                  	di
+     801   00:438D  47                  	ld      b,a                 ; B = Slot param in FxxxSSPP format
+     802   00:438E                      
+     803   00:438E  DB A8               	in      a,(0A8h)
+     804   00:4390  E6 FC               	and     0xFC
+     805   00:4392  57                  	ld      d,a                 ; D = Primary slot value
+     806   00:4393                      
+     807   00:4393  78                  	ld      a,b
+     808   00:4394                      
+     809   00:4394  E6 03               	and     3
+     810   00:4396  B2                  	or      d
+     811   00:4397  57                  	ld      d,a                 ; D = Final Value for primary slot
+     812   00:4398                      
+     813   00:4398                      	; Check if expanded
+     814   00:4398  78                  	ld      a,b
+     815   00:4399  CB 7F               	bit     7,a
+     816   00:439B  28 21               	jr      z,1f    ; Not Expanded
+     817   00:439D                      
+     818   00:439D  E6 03               	and     3
+     819   00:439F  0F                  	rrca
+     820   00:43A0  0F                  	rrca
+     821   00:43A1  E6 C0               	and     0xC0
+     822   00:43A3  4F                  	ld      c,a
+     823   00:43A4  7A                  	ld      a,d
+     824   00:43A5  E6 3F               	and     0x3F
+     825   00:43A7  B1                  	or      c
+     826   00:43A8  4F                  	ld      c,a                 ; Primary slot value with main slot in page 3
+     827   00:43A9                      
+     828   00:43A9  78                  	ld      a,b
+     829   00:43AA  E6 0C               	and     0x0C
+     830   00:43AC  0F                  	rrca
+     831   00:43AD  0F                  	rrca
+     832   00:43AE  E6 03               	and     3
+     833   00:43B0  47                  	ld      b,a                 ; B = Expanded slot in page 3
+     834   00:43B1  79                  	ld      a,c
+     835   00:43B2  D3 A8               	out     (0A8h),a            ; Slot : Main Slot, xx, xx, Main slot
+     836   00:43B4  3A FF FF            	ld      a,(0FFFFh)
+     837   00:43B7  2F                  	cpl
+     838   00:43B8  E6 FC               	and     0xFC
+     839   00:43BA  B0                  	or      b
+     840   00:43BB  32 FF FF            	ld      (0FFFFh),a          ; Expanded slot selected
+     841   00:43BE                      
+     842   00:43BE                      1:
+     843   00:43BE  7A                  	ld      a,d             ; A = Final value
+     844   00:43BF  D3 A8               	out     (0A8h),a		; Slot Final. Ram, rom c, rom c, Main
+     845   00:43C1  C9                  	ret
+     846   00:43C2                      	
+     847   00:43C2                      
+     848   00:43C2                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     849   00:43C2                      ;
+     850   00:43C2                      ;   load tile sets and sprites
+     851   00:43C2                      vram_init:
+     852   00:43C2                      	setvdpwvram 0x1B80              ; sprites in the scorebar
+     852   00:43C2  F3                >     di
+     852   00:43C3                    >     _setvdpwvram value
+     852   00:43C3                    >     if (value & 0xFF)
+     852   00:43C3  3E 80             >         ld  a,value & 0xFF
+     852   00:43C5                    >     else
+     852   00:43C5                    ~         xor a
+     852   00:43C5                    ~     endif
+     852   00:43C5  D3 99             >     out (0x99),a
+     852   00:43C7  3E 5B             >     ld  a,0x40 + (value/256)
+     852   00:43C9  D3 99             >     out (0x99),a
+     852   00:43CB  FB                >     ei
+     853   00:43CC  21 00 A4            	ld  hl,scorebar_sat
+     854   00:43CF  3E 03               	ld	a,:scorebar_sat
+     855   00:43D1  CD 52 40            	call    write_256
+     856   00:43D4                      
+     857   00:43D4                      	setvdpwvram 0x1C00
+     857   00:43D4  F3                >     di
+     857   00:43D5                    >     _setvdpwvram value
+     857   00:43D5                    >     if (value & 0xFF)
+     857   00:43D5                    ~         ld  a,value & 0xFF
+     857   00:43D5                    ~     else
+     857   00:43D5  AF                >         xor a
+     857   00:43D6                    >     endif
+     857   00:43D6  D3 99             >     out (0x99),a
+     857   00:43D8  3E 5C             >     ld  a,0x40 + (value/256)
+     857   00:43DA  D3 99             >     out (0x99),a
+     857   00:43DC  FB                >     ei
+     858   00:43DD  21 00 A0            	ld  hl,tileset					; dummy tile set from basic rom
+     859   00:43E0  3E 03               	ld	a,:tileset
+     860   00:43E2  CD 52 40            	call    write_256
+     861   00:43E5                      
+     862   00:43E5                      	setvdpwvram 0x1800				;   dummy PNT
+     862   00:43E5  F3                >     di
+     862   00:43E6                    >     _setvdpwvram value
+     862   00:43E6                    >     if (value & 0xFF)
+     862   00:43E6                    ~         ld  a,value & 0xFF
+     862   00:43E6                    ~     else
+     862   00:43E6  AF                >         xor a
+     862   00:43E7                    >     endif
+     862   00:43E7  D3 99             >     out (0x99),a
+     862   00:43E9  3E 58             >     ld  a,0x40 + (value/256)
+     862   00:43EB  D3 99             >     out (0x99),a
+     862   00:43ED  FB                >     ei
+     863   00:43EE  06 00               	ld	b,0
+     864   00:43F0  3E 00               	ld	a,0
+     865   00:43F2  D3 98               1:	out (0x98),a
+     866   00:43F4  04                  	inc	b
+     867   00:43F5  20 FB               	jr	nz,1b
+     868   00:43F7                      
+     869   00:43F7                      	setvdpwvram 0x1BD0
+     869   00:43F7  F3                >     di
+     869   00:43F8                    >     _setvdpwvram value
+     869   00:43F8                    >     if (value & 0xFF)
+     869   00:43F8  3E D0             >         ld  a,value & 0xFF
+     869   00:43FA                    >     else
+     869   00:43FA                    ~         xor a
+     869   00:43FA                    ~     endif
+     869   00:43FA  D3 99             >     out (0x99),a
+     869   00:43FC  3E 5B             >     ld  a,0x40 + (value/256)
+     869   00:43FE  D3 99             >     out (0x99),a
+     869   00:4400  FB                >     ei
+     870   00:4401  06 10               	ld	b,16				; 	dummy colors
+     871   00:4403  3E 11               	ld	a,11h
+     872   00:4405  D3 98               1:	out (0x98),a
+     873   00:4407  05                  	dec	b
+     874   00:4408  20 FB               	jr	nz,1b
+     875   00:440A  C9                  	ret
+     876   00:440B                      
+     877   00:440B                      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     878   00:440B                      ; ROM initialisation
+     879   00:440B                      
+     880   00:440B                      initmain:
+     881   00:440B                      	
+     882   00:440B  CD 1B 40            	call _scr2				; screen 2
+     883   00:440E                      	
+     884   00:440E  CD 4B 43            	call 	search_slotset	; now the first 32KB of the megarom are active
+     885   00:4411                      			
+     886   00:4411                      	;call	setrompage0		; 48K of rom are active - bios is excluded
+     887   00:4411                      	
+     888   00:4411                      	_setVdp 7,0
+     888   00:4411  3E 00             >     ld  a,value
+     888   00:4413  D3 99             >     out (0x99),a
+     888   00:4415  3E 87             >     ld  a,register + 0x80
+     888   00:4417  D3 99             >     out (0x99),a
+     889   00:4419  FB                  	ei
+     890   00:441A  CD 29 40            	call	set_sprites
+     891   00:441D  CD C2 43            	call 	vram_init		; set data in the top 3d of the screen
+     892   00:4420                      	
+     893   00:4420  CD 64 40            	call	initcommontiles		;	load common tiles
+     894   00:4423                      	
+     895   00:4423                      	; move meta map in ram
+     896   00:4423  3E 06               	ld	a,:metamap
+     897   00:4425  32 00 B0            	ld	(_bank4),a
+     898   00:4428  01 C0 13            	ld	bc,LvlWidth*LvlHeigh
+     899   00:442B  21 00 A0            	ld	hl,metamap
+     900   00:442E  11 00 C0            	ld	de,buffer
+     901   00:4431  ED B0               	ldir
+     902   00:4433                      
+     903   00:4433  21 00 80            	ld	hl,myisr
+     904   00:4436  22 9B FD            	ld	(0xFD9A+1),hl
+     905   00:4439  3E C3               	ld	a,0xC3
+     906   00:443B  32 9A FD            	ld	(0xFD9A),a
+     907   00:443E                      
+     908   00:443E  21 00 00            	ld	hl,0
+     909   00:4441  22 02 E0            	ld	(xmap),hl
+     910   00:4444  22 04 E0            	ld	(ymap),hl
+     911   00:4447  AF                  	xor a
+     912   00:4448  32 06 E0            	ld	(dxmap),a
+     913   00:444B  32 07 E0            	ld	(dymap),a
+     914   00:444E  32 08 E0            	ld	(phase),a
+     915   00:4451  3C                  	inc	a
+     916   00:4452  32 09 E0            	ld	(vpage),a
+     917   00:4455                      	
+     918   00:4455                      
+     919   00:4455                      mainloop:
+     920   00:4455                      
+     921   00:4455                      	; setVdp 7,2	
+     922   00:4455  76                  	halt
+     923   00:4456                      	; setVdp 7,8
+     924   00:4456  CD 82 44            	call	show_activepage
+     925   00:4459  CD 99 41            	call    plot_pnt		;	use phase to plot the correct PNT
+     926   00:445C                      	; setVdp 7,0
+     927   00:445C                      	
+     928   00:445C  CD 04 45            	call	sub_main		; 	compute new "phase"
+     929   00:445F                      
+     930   00:445F                      	; setVdp 7,2	
+     931   00:445F  76                  	halt
+     932   00:4460                      	setVdp 7,10
+     932   00:4460  F3                >     di
+     932   00:4461                    >     _setVdp register,value
+     932   00:4461  3E 0A             >     ld  a,value
+     932   00:4463  D3 99             >     out (0x99),a
+     932   00:4465  3E 87             >     ld  a,register + 0x80
+     932   00:4467  D3 99             >     out (0x99),a
+     932   00:4469  FB                >     ei
+     933   00:446A  CD B1 40            	call	setvramp		;	use phase to select the tileset loaded to page 1/0
+     934   00:446D                      	setVdp 7,0
+     934   00:446D  F3                >     di
+     934   00:446E                    >     _setVdp register,value
+     934   00:446E  3E 00             >     ld  a,value
+     934   00:4470  D3 99             >     out (0x99),a
+     934   00:4472  3E 87             >     ld  a,register + 0x80
+     934   00:4474  D3 99             >     out (0x99),a
+     934   00:4476  FB                >     ei
+     935   00:4477                      		
+     936   00:4477  3A 09 E0            	ld	a,(vpage)
+     937   00:447A  EE 01               	xor 1				; 	swap page
+     938   00:447C  32 09 E0            	ld	(vpage),a			
+     939   00:447F                      		
+     940   00:447F  C3 55 44            	jp 	mainloop
+     941   00:4482                      	
+     942   00:4482                      	
+     943   00:4482                      show_activepage:	
+     944   00:4482  3A 09 E0            	ld  a,(vpage)	
+     945   00:4485  A7                  	and a
+     946   00:4486  CA 9C 44            	jp  z,.page0
+     947   00:4489                      .page1:				; 	page 1 active
+     948   00:4489  F3                  	di
+     949   00:448A                      	_setVdp 3,0x9F	; 	PCT at 0x2000	(hybrid)
+     949   00:448A  3E 9F             >     ld  a,value
+     949   00:448C  D3 99             >     out (0x99),a
+     949   00:448E  3E 83             >     ld  a,register + 0x80
+     949   00:4490  D3 99             >     out (0x99),a
+     950   00:4492                      	_setVdp 4,0x03	;	PGT at 0x0000	(regular: used 0x0800 0x1000)
+     950   00:4492  3E 03             >     ld  a,value
+     950   00:4494  D3 99             >     out (0x99),a
+     950   00:4496  3E 84             >     ld  a,register + 0x80
+     950   00:4498  D3 99             >     out (0x99),a
+     951   00:449A  FB                  	ei
+     952   00:449B  C9                  	ret
+     953   00:449C                      .page0:				; 	page 0 active
+     954   00:449C  F3                  	di
+     955   00:449D                      	_setVdp 3,0x1F	; 	PCT at 0x0000	(hybrid)
+     955   00:449D  3E 1F             >     ld  a,value
+     955   00:449F  D3 99             >     out (0x99),a
+     955   00:44A1  3E 83             >     ld  a,register + 0x80
+     955   00:44A3  D3 99             >     out (0x99),a
+     956   00:44A5                      	_setVdp 4,0x07	;	PGT at 0x2000	(regular: used 0x2800 0x3000)
+     956   00:44A5  3E 07             >     ld  a,value
+     956   00:44A7  D3 99             >     out (0x99),a
+     956   00:44A9  3E 84             >     ld  a,register + 0x80
+     956   00:44AB  D3 99             >     out (0x99),a
+     957   00:44AD  FB                  	ei
+     958   00:44AE  C9                  	ret
+     959   00:44AF                      	
+     960   00:44AF                      dxdycontrol:
+     961   00:44AF  7D                  	ld  a,l
+     962   00:44B0  E6 80               	and 0x80    ; right
+     963   00:44B2  20 0C               	jr  nz,1f
+     964   00:44B4  3A 06 E0            	ld  a,(dxmap)
+     965   00:44B7  FE 80               	cp  maxspeed        ; MAX SPEED
+     966   00:44B9  28 05               	jr  z,1f
+     967   00:44BB  C6 01               	add a,maxspeedstep
+     968   00:44BD  32 06 E0            	ld  (dxmap),a
+     969   00:44C0                      1:
+     970   00:44C0  7D                  	ld  a,l
+     971   00:44C1  E6 10               	and 0x10    ; left
+     972   00:44C3  20 0C               	jr  nz,1f
+     973   00:44C5  3A 06 E0            	ld  a,(dxmap)
+     974   00:44C8  FE 80               	cp  -maxspeed       ; MAX SPEED
+     975   00:44CA  28 05               	jr  z,1f
+     976   00:44CC  C6 FF               	add a,-maxspeedstep
+     977   00:44CE  32 06 E0            	ld  (dxmap),a
+     978   00:44D1                      1:
+     979   00:44D1                      	; y position
+     980   00:44D1  7D                  	ld  a,l
+     981   00:44D2  E6 20               	and 0x20    ; up
+     982   00:44D4  20 0C               	jr  nz,1f
+     983   00:44D6  3A 07 E0            	ld  a,(dymap)
+     984   00:44D9  FE 80               	cp  -maxspeed        ; MAX SPEED
+     985   00:44DB  28 05               	jr  z,1f
+     986   00:44DD  C6 FF               	add a,-maxspeedstep
+     987   00:44DF  32 07 E0            	ld  (dymap),a
+     988   00:44E2                      1:
+     989   00:44E2  7D                  	ld  a,l
+     990   00:44E3  E6 40               	and 0x40    ; down
+     991   00:44E5  20 0C               	jr  nz,1f
+     992   00:44E7  3A 07 E0            	ld  a,(dymap)
+     993   00:44EA  FE 80               	cp  maxspeed       ; MAX SPEED
+     994   00:44EC  28 05               	jr  z,1f
+     995   00:44EE  C6 01               	add a,maxspeedstep
+     996   00:44F0  32 07 E0            	ld  (dymap),a
+     997   00:44F3                      1:
+     998   00:44F3  C9                  	ret
+     999   00:44F4                      
+    1000   00:44F4                      stopx:
+    1001   00:44F4  AF                  	xor	a
+    1002   00:44F5  32 06 E0            	ld  (dxmap),a
+    1003   00:44F8  21 00 00            	ld	hl,0
+    1004   00:44FB  C9                  	ret
+    1005   00:44FC                      stopy:
+    1006   00:44FC  AF                  	xor	a
+    1007   00:44FD  32 07 E0            	ld  (dymap),a
+    1008   00:4500  21 00 00            	ld	hl,0
+    1009   00:4503  C9                  	ret
+    1010   00:4504                      
+    1011   00:4504                      sub_main:
+    1012   00:4504                      	; x speed control
+    1013   00:4504  1E 08               	ld  e,8
+    1014   00:4506  CD 10 40            	call    checkkbd
+    1015   00:4509  CD AF 44            	call	dxdycontrol
+    1016   00:450C                      
+    1017   00:450C  ED 5B 02 E0         	ld  de,(xmap)		; FP 4.4
+    1018   00:4510  3A 06 E0            	ld  a,(dxmap)
+    1019   00:4513  6F                  	ld  l,a
+    1020   00:4514  87                  	add a,a
+    1021   00:4515  9F                  	sbc a,a
+    1022   00:4516  67                  	ld  h,a
+    1023   00:4517  29 29 29 29         [4]	add	hl,hl
+    1024   00:451B  A7                  	and a
+    1025   00:451C  ED 5A               	adc hl,de
+    1026   00:451E  FC F4 44            	call	m,stopx
+    1027   00:4521  11 C0 1F            	ld	de,(LvlWidth-32)*256-64
+    1028   00:4524  A7                  	and a
+    1029   00:4525  ED 52               	sbc	hl,de
+    1030   00:4527  F4 F4 44            	call	p,stopx
+    1031   00:452A  19                  	add	hl,de
+    1032   00:452B  22 02 E0            	ld  (xmap),hl
+    1033   00:452E                      
+    1034   00:452E  ED 5B 04 E0         	ld  de,(ymap)		; FP 4.4
+    1035   00:4532  3A 07 E0            	ld  a,(dymap)
+    1036   00:4535  6F                  	ld  l,a
+    1037   00:4536  87                  	add a,a
+    1038   00:4537  9F                  	sbc a,a
+    1039   00:4538  67                  	ld  h,a
+    1040   00:4539  29 29 29 29         [4]	add	hl,hl
+    1041   00:453D  A7                  	and	a
+    1042   00:453E  ED 5A               	adc hl,de
+    1043   00:4540  FC FC 44            	call	m,stopy
+    1044   00:4543  11 C0 3E            	ld	de,(LvlHeigh-16)*256-64
+    1045   00:4546  A7                  	and a
+    1046   00:4547  ED 52               	sbc	hl,de
+    1047   00:4549  F4 FC 44            	call	p,stopy
+    1048   00:454C  19                  	add	hl,de
+    1049   00:454D  22 04 E0            	ld  (ymap),hl
+    1050   00:4550                      
+    1051   00:4550                      
+    1052   00:4550  3A 02 E0            	ld	a,(xmap)	; xmap 8.8
+    1053   00:4553  07 07               [2]	rlca
+    1054   00:4555  E6 03               	and		%00000011
+    1055   00:4557  47                  	ld	b,a
+    1056   00:4558  3A 04 E0            	ld	a,(ymap)	; ymap 8.8
+    1057   00:455B  07 07 07 07         [4]	rlca
+    1058   00:455F  E6 0C               	and		%00001100
+    1059   00:4561  B0                  	or	b
+    1060   00:4562  32 08 E0            	ld	(phase),a
+    1061   00:4565  C9                  	ret
+    1062   00:4566                      
+    1063   00:4566                      
+    1064   00:4566                      
+    1065   00:4566                      
 
     LABELS
 -------------------------------------------------
@@ -1306,28 +1320,28 @@ Errors: 0
 00:00004157   tilesize
 00:00004167   tileaddress
 00:00004177   write_2k
-00:000041A5   plot_pnt
-00:00004289   plot_pnt.fast_loop
-00:00004335 X disp_page1
-00:00004346 X disp_page0
+00:00004199   plot_pnt
+00:0000427D   plot_pnt.fast_loop
+00:00004329 X disp_page1
+00:0000433A X disp_page0
 00:00000024   ENASLT
 00:00000138   RSLREG
 00:0000FCC1   EXPTBL
-00:00004357   search_slotset
-00:0000436F   search_slot
-00:00004390 X setrompage0
-00:00004395 X recbios
-00:00004398   setslotpage0
-00:000043CE   vram_init
-00:00004417   initmain
-00:00004461   mainloop
-00:0000448E   show_activepage
-00:00004495 X show_activepage.page1
-00:000044A8   show_activepage.page0
-00:000044BB   dxdycontrol
-00:00004500   stopx
-00:00004508   stopy
-00:00004510   sub_main
+00:0000434B   search_slotset
+00:00004363   search_slot
+00:00004384 X setrompage0
+00:00004389 X recbios
+00:0000438C   setslotpage0
+00:000043C2   vram_init
+00:0000440B   initmain
+00:00004455   mainloop
+00:00004482   show_activepage
+00:00004489 X show_activepage.page1
+00:0000449C   show_activepage.page0
+00:000044AF   dxdycontrol
+00:000044F4   stopx
+00:000044FC   stopy
+00:00004504   sub_main
 
 
  Output: src\main128.out
@@ -1342,11 +1356,11 @@ Errors: 0
 -------------------------------------------------
 
  Page: 00
-  Org: 00004000  Size: 00002000  Used: 00000572
+  Org: 00004000  Size: 00002000  Used: 00000566
 
    Address   Length Align   Label
-   00004000    1394         checkkbd
-   00004572    6798       <empty>
+   00004000    1382         checkkbd
+   00004566    6810       <empty>
 
  Page: 01
   Org: 00006000  Size: 00002000  Used: 00000000

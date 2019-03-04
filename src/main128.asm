@@ -534,23 +534,17 @@ write_2k:
 	
 	dec	c
 	
-	ld	a,d
-	and	a
-	call	nz,3f
 	ld	a,e
 	and	a
-	jp	z,4f
+	jp	z,1f
+	inc	d
+1:	
 	ld	b,e
-2:	outi
-	jp	nz,2b
-4:	ei
-	ret
-	
-3:	ld	b,0
 2:	outi
 	jp	nz,2b
 	dec	d
 	jp nz,2b	
+	ei
 	ret
 
 
