@@ -516,7 +516,10 @@ tileaddress:
 ; write 2K while ints are active from hl to de
 ; in: de vram address
 ;     hl ram address
-;	   a counter of 8 bytes chunks
+;	   a counter of 8 chunks of bytes 
+;
+; N outi per frame in vblank (NTSC) = 3579545 * ((27+24.5+3+3+13)/262.5*1/59.94)/18
+
 write_2k:
 	di
 	ld	c,0x99
@@ -530,15 +533,28 @@ write_2k:
 	ex	de,hl
 	
 	dec	c
-	inc	d
+	
+	ld	a,d
+	and	a
+	call	nz,3f
+	ld	a,e
+	and	a
+	jp	z,4f
 	ld	b,e
 2:	outi
-	jp nz,2b
-	dec	d
-	jp nz,2b	
-	ei
+	jp	nz,2b
+4:	ei
 	ret
 	
+3:	ld	b,0
+2:	outi
+	jp	nz,2b
+	dec	d
+	jp nz,2b	
+	ret
+
+
+		
 ; write_2k:
 	; push hl
 	; ex	de,hl
@@ -831,7 +847,7 @@ vram_init:
 
 	setvdpwvram 0x1800				;   dummy PNT
 	ld	b,0
-	ld	a,4
+	ld	a,0
 1:	out (0x98),a
 	inc	b
 	jr	nz,1b
@@ -887,7 +903,8 @@ initmain:
 	
 
 mainloop:
-	
+
+	; setVdp 7,2	
 	halt
 	; setVdp 7,8
 	call	show_activepage
@@ -896,9 +913,11 @@ mainloop:
 	
 	call	sub_main		; 	compute new "phase"
 
-	; setVdp 7,10
+	; setVdp 7,2	
+	halt
+	setVdp 7,10
 	call	setvramp		;	use phase to select the tileset loaded to page 1/0
-	; setVdp 7,0
+	setVdp 7,0
 		
 	ld	a,(vpage)
 	xor 1				; 	swap page
