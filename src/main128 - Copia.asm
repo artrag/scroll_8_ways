@@ -1,53 +1,21 @@
 
 
-
-    macro _setVdp register,value       ; without DI/EI
-    ld  a,value
-    out (0x99),a
-    ld  a,register + 0x80
-    out (0x99),a
-    endmacro
-
-    macro setVdp register,value       ; macro definition
-    di
-    _setVdp register,value
-    ei
-    endmacro
-
-    macro _setvdpwvram value
-    if (value & 0xFF)
-        ld  a,value & 0xFF
-    else
-        xor a
-    endif
-    out (0x99),a
-    ld  a,0x40 + (value/256)
-    out (0x99),a
-    endmacro
-
-    macro setvdpwvram value
-    di
-    _setvdpwvram value
-    ei
-    endmacro
-	
-
 	incdir data_bin/
 
 	include parameters.asm
 
 	output Scrll8way128.rom
 
-	defpage	 0,0x4000, 0x2000		; page 0 contains main code + far call routines
-	defpage  1,0x6000, 0x2000		; static code
-	defpage	 2,0x8000, 0x2000		; static code - ISR code
+	defpage	0,0x4000, 0x2000		; page 0 contains main code + far call routines
+	defpage 1,0x6000, 0x2000		; static code
+	defpage	2,0x8000, 0x2000		; static code - ISR code
 	
-	defpage	 3,0xA000, 0x2000		; scorebar data 
-	defpage	 4,0xA000, 0x2000		; common patterns and colors
+	defpage	3,0xA000, 0x2000		; 
+	defpage	4,0xA000, 0x2000		; common patterns and colors
 	
-	defpage	 5,0xA000, 0x2000		; sprites
-	defpage	 6,0xA000, 0x2000		; meta map
-	defpage	 7,0xA000, 0x2000		; metavec
+	defpage	5,0xA000, 0x2000		; sprites
+	defpage	6,0xA000, 0x2000		; meta map
+	defpage	7,0xA000, 0x2000		; metavec
 
 	defpage	 8,0xA000, 0x2000		; patterns_base
 	defpage	 9,0xA000, 0x2000		; patterns_base
@@ -68,13 +36,13 @@ tileset:
 	; place sprites in the score bar
 scorebar_sat:
 	repeat  4
-	db  6*8-1
-	db  255
+	db  5*8
+	db  @# * 16
 	db  32*4
 	db  0
 	endrepeat
-	db  6*8-1+15
-	db  255
+	db  5*8+14
+	db  4*16
 	db  32*4
 	db  0
 	db	0xd0
@@ -138,6 +106,38 @@ colors71_73_75_77:
 	incbin testcol.bin,12*2*1024+CommonTiles*8,8*1024-CommonTiles*8
 
 
+
+
+    macro _setVdp register,value       ; without DI/EI
+    ld  a,value
+    out (0x99),a
+    ld  a,register + 0x80
+    out (0x99),a
+    endmacro
+
+    macro setVdp register,value       ; macro definition
+    di
+    _setVdp register,value
+    ei
+    endmacro
+
+    macro _setvdpwvram value
+    if (value & 0xFF)
+        ld  a,value & 0xFF
+    else
+        xor a
+    endif
+    out (0x99),a
+    ld  a,0x40 + (value/256)
+    out (0x99),a
+    endmacro
+
+    macro setvdpwvram value
+    di
+    _setvdpwvram value
+    ei
+    endmacro
+	
 ; -----------------------------
 ; smooth scroller demo
 ; Trilobyte 2014
@@ -193,7 +193,6 @@ dymap:			#1		; FP 4.4
 
 phase:			#1
 vpage:			#1
-hold:			#1
 
 	endmap
 
@@ -207,7 +206,6 @@ hold:			#1
 myisr:
  	pop	af		; 	remove return address
 	in  a,(0x99)	; 	s0 reset
-	call	showscorebar
  	pop    ix
 	pop    iy
 	pop    af
@@ -222,6 +220,73 @@ myisr:
 	pop    hl
 	ei
 	ret
+	
+;	push   hl
+;	push   de
+;	push   bc
+;	push   af
+;	exx
+;	ex     af,af'
+;	push   hl
+;	push   de
+;	push   bc
+;	push   af
+;	push   iy
+;	push   ix
+
+;	disabled code for future developments
+
+;	pop		af		; 	remove return address
+
+;	_setVdp 0,0x00  ; 	screen 1
+
+;	_setVdp 4,0x03  ; 	PGT at 1800h (used from 0x1C00 to 0x1FFF, only 128 characters)
+;	_setVdp 3,0x6F  ; 	PCT at 1BC0h (used from 0x1BD0 to 0x1BDF, only 16 bytes)
+
+;	_setVdp 5,0x37  ;   SAT at 1B80
+;	_setVdp 6,0x03  ;   SPT at 1800   (used from 0x1C00 to 0x1FFF  only 32 sprites 16x16)
+
+;	in  a,(0x99)	; 	s0 reset
+
+	; _setVdp 7,8  	; 	
+	; call    _plot_pnt
+	; _setVdp 7,0  	; 	
+
+;1:  in  a,(0x99)	; 	wait raster line
+;	and %01011111
+;	cp  %01000100	; 	plane 4 =0x44
+;	jp  nz,1b
+
+;	_setVdp 0,0x02  ;	screen 2
+
+;	ld  a,(vpage)	
+;	and a
+;	jp  z,page0
+;page1:				; 	page 1 active
+;	_setVdp 3,0x9F	; 	colours at 0x2000	(hybrid)
+;	_setVdp 4,0x03	;	patterns at 0x0000	(regular: used 0x0800 0x1000)
+;	jp  1f
+;page0:				; 	page 0 active
+;	_setVdp 3,0x1F	; 	colours at 0x0000	(hybrid)
+;	_setVdp 4,0x07	;	patterns at 0x2000	(regular: used 0x2800 0x3000)
+;1:
+;	_setVdp 5,0x36  ;   SAT at 0x1b00
+;	_setVdp 6,0x07  ;   SPT at 0x3800   (64 sprites 16x16)
+
+;	pop    ix
+;	pop    iy
+;	pop    af
+;	pop    bc
+;	pop    de
+;	pop    hl
+;	ex     af,af'
+;	exx
+;	pop    af
+;	pop    bc
+;	pop    de
+;	pop    hl
+;	ei
+;	ret
 
 
 ; ------------
@@ -455,33 +520,32 @@ tileaddress:
 ;
 ; N outi per frame in vblank (NTSC) = 3579545 * ((27+24.5+3+3+13)/262.5*1/59.94)/18
 
-;_write_2k:
-;	di
-;	ld	c,0x99
-;	out (c),e
-;	out (c),d	;c = 0x99, HL with write setup bit set
-;		
-;	ld	e,a
-;	ld	d,0
-;	ex	de,hl
-;[3]	add hl,hl
-;	ex	de,hl
-;	
-;	dec	c
-;	
-;	ld	a,e
-;	and	a
-;	jp	z,1f
-;	inc	d
-;1:	
-;	ld	b,e
-;2:	outi
-;	jp	nz,2b
-;	dec	d
-;	
-;	jp nz,2b	
-;	ei
-;	ret
+_write_2k:
+	di
+	ld	c,0x99
+	out (c),e
+	out (c),d	;c = 0x99, HL with write setup bit set
+
+	ld	e,a
+	ld	d,0
+	ex	de,hl
+[3]	add hl,hl
+	ex	de,hl
+	
+	dec	c
+	
+	ld	a,e
+	and	a
+	jp	z,1f
+	inc	d
+1:	
+	ld	b,e
+2:	outi
+	jp	nz,2b
+	dec	d
+	jp nz,2b	
+	ei
+	ret
 
 
 		
@@ -609,6 +673,17 @@ plot_pnt:
 ;          defb 0x07 ; Reg# 6 00000[SPRITE PTRN GNRTR BASE ADDRESS]  = 3800h
 ;          defb 0x01 ; Reg# 7 [TEXT COLOR 4bts][BACKDROP COLOR 4bts]
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+disp_page1:			; page 1 active
+	_setVdp 3,0x9F	; 	colours at 0x2000	(hybrid)
+	_setVdp 4,0x03	;	patterns at 0x0000	(regular: used 0x0800 0x1000)
+	ret
+
+disp_page0:			; page 0 active
+	_setVdp 3,0x1F	; 	colours at 0x0000	(hybrid)
+	_setVdp 4,0x07	;	patterns at 0x2000	(regular: used 0x2800 0x3000)
+	ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; set pages and subslot
@@ -764,27 +839,19 @@ vram_init:
 	ld	a,:tileset
 	call    write_256
 
-	setvdpwvram 0x1800				; dummy PNT
+	setvdpwvram 0x1800				;   dummy PNT
+	ld	b,0
 	xor a
-	ld	b,a
 1:	or 80h
 	out (0x98),a
 	inc	a
 	inc	b
 	jr	nz,1b
 
-	; setvdpwvram 0x18E0 				; dummy PNT
-	; ld	b,32
-	; ld 	a,80h
-; 1:	out (0x98),a
-	; dec b
-	; jr	nz,1b
-
 	setvdpwvram 0x1BD0
-	ld	b,16						; dummy colors
-	xor a
+	ld	b,16						; 	dummy colors
+	ld	a,41h
 1:	out (0x98),a
-	add	a,16
 	dec	b
 	jr	nz,1b
 	ret
@@ -828,41 +895,38 @@ initmain:
 	ld	(dymap),a
 	inc	a
 	ld	(vpage),a
-	xor a
-	ld	(hold),a
 	
 	call	setphase
 	
 mainloop:
 
 	halt
-	ld	a,1
-	ld	(hold),a
+	call   showscorebar0
+	
+	halt
+	call   showscorebar1
+	setVdp 7,10
 	call	setvramp		;	use phase to select the tileset loaded to page 1/0
-	xor a
-	ld	(hold),a
+	setVdp 7,0
 		
 	ld	a,(vpage)
 	xor 1				; 	swap page
 	ld	(vpage),a			
 		
 	jp 	mainloop
-	
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;
-; isr 
-;	
-showscorebar:
+
+showscorebar0:
 	_setVdp 0,0x00  ; 	screen 1
 	_setVdp 4,0x03  ; 	PGT at 1800h (used from 0x1C00 to 0x1FFF, only 128 characters)
 	_setVdp 3,0x6F  ; 	PCT at 1BC0h (used from 0x1BD0 to 0x1BDF, only 16 bytes)
 	_setVdp 5,0x37  ;   SAT at 1B80
 	_setVdp 6,0x03  ;   SPT at 1800   (used from 0x1C00 to 0x1FFF  only 32 sprites 16x16)
 
-	ld	a,(hold)
-	and a
-	call	z,payload
+	call    plot_pnt		;	use phase to plot the correct PNT
 	
+	call	sub_main		; 	set x,y
+	call	setphase		; 	compute new "phase"
+
 1:  in  a,(0x99)	; 	wait raster line
 	and %01011111
 	cp  %01000100	; 	plane 4 =0x44
@@ -873,24 +937,42 @@ showscorebar:
 	_setVdp 5,0x36  ;   SAT at 0x1b00
 	_setVdp 6,0x07  ;   SPT at 0x3800   (64 sprites 16x16)
 	ret 
+	
+showscorebar1:
+	_setVdp 0,0x00  ; 	screen 1
+	_setVdp 4,0x03  ; 	PGT at 1800h (used from 0x1C00 to 0x1FFF, only 128 characters)
+	_setVdp 3,0x6F  ; 	PCT at 1BC0h (used from 0x1BD0 to 0x1BDF, only 16 bytes)
+	_setVdp 5,0x37  ;   SAT at 1B80
+	_setVdp 6,0x03  ;   SPT at 1800   (used from 0x1C00 to 0x1FFF  only 32 sprites 16x16)
 
-payload:
-	call    plot_pnt		;	use phase to plot the correct PNT
-	call	sub_main		; 	set x,y
-	call	setphase		; 	compute new "phase"
-	ret
+
+1:  in  a,(0x99)	; 	wait raster line
+	and %01011111
+	cp  %01000100	; 	plane 4 =0x44
+	; jp  nz,1b
+
+	_setVdp 0,0x02  ;	screen 2
+	call	show_activepage
+	_setVdp 5,0x36  ;   SAT at 0x1b00
+	_setVdp 6,0x07  ;   SPT at 0x3800   (64 sprites 16x16)
+	ret 
+	
 	
 show_activepage:	
 	ld  a,(vpage)	
 	and a
 	jp  z,.page0
 .page1:				; 	page 1 active
+	di
 	_setVdp 3,0x9F	; 	PCT at 0x2000	(hybrid)
 	_setVdp 4,0x03	;	PGT at 0x0000	(regular: used 0x0800 0x1000)
+	ei
 	ret
 .page0:				; 	page 0 active
+	di
 	_setVdp 3,0x1F	; 	PCT at 0x0000	(hybrid)
 	_setVdp 4,0x07	;	PGT at 0x2000	(regular: used 0x2800 0x3000)
+	ei
 	ret
 	
 dxdycontrol:
